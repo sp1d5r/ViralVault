@@ -1,0 +1,11 @@
+name: monorepo-example
+runtime:
+  name: python
+  options:
+    toolchain: pip
+    virtualenv: venv
+description: a lambda function that has an api gateway for deploying my backend code in a serverless way. Ecr container to have the images
+config:
+  pulumi:tags:
+    value:
+      pulumi:template: https://www.pulumi.com/ai/api/project/dc0832c1-9501-4b51-8e3b-4ef820ddc199.zip

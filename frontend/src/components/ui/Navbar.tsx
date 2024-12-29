@@ -1,0 +1,59 @@
+import { Link, useNavigate } from 'react-router-dom';
+import { Button } from "../shadcn/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../shadcn/dropdown-menu";
+import { Menu, Moon, Sun } from 'lucide-react';
+import { useDarkMode } from '../../contexts/DarkModeProvider';
+import { AuthStatus, useAuth } from '../../contexts/AuthenticationProvider';
+
+export default function Navbar() {
+  const navigate = useNavigate();
+  const {darkModeState, toggleDarkMode} = useDarkMode();
+  const {authState} = useAuth()
+
+  const handleNavigation = (path: string) => {
+    navigate(path);
+  };
+
+  return (
+    <nav className="sticky top-0 bg-neutral-950 border-b border-neutral-800 z-50">
+      <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+        <div className="flex items-center">
+          <Link to="/" className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-500 via-violet-500 to-pink-500">
+            ViralVault
+          </Link>
+        </div>
+        <div className="hidden md:flex space-x-4">
+        </div>
+        {
+          authState.status === AuthStatus.UNAUTHENTICATED && <div className="flex space-x-2">
+            <Button variant="ghost" asChild>
+              <Link to="/authentication?mode=login" className="text-gray-200 hover:text-white">
+                Log in
+              </Link>
+            </Button>
+            <Button className="bg-gradient-to-r from-purple-500 via-violet-500 to-pink-500 text-white hover:opacity-90" asChild>
+              <Link to="/authentication?mode=sign-up">Sign up</Link>
+            </Button>
+          </div>
+        }
+        {
+          authState.status === AuthStatus.AUTHENTICATED && <div className="flex space-x-2">
+            <Button variant="outline" asChild>
+              <Link to="/dashboard" className="text-gray-200 hover:text-white">Dashboard</Link>
+            </Button>
+          </div>
+        }
+        {
+          authState.status === AuthStatus.LOADING && <div className="hidden md:flex space-x-2">
+            <p className='text-white text-bold'>Loading...</p>
+          </div>
+        }
+      </div>
+    </nav>
+  );
+}

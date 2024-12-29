@@ -1,0 +1,14 @@
+# Build directories
+**/dist/**
+**/build/**
+
+# Dependencies
+**/node_modules/**
+
+# Other generated files
+**/*.min.js
+**/*.bundle.js
+**/*.js.map
+
+# Ignore all files in the infra directory
+**/infra/**
