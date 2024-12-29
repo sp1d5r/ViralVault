@@ -1,0 +1,45 @@
+/frontend/node_modules
+/frontend/.pnp
+/frontend.pnp.js
+
+# testing
+/frontend/coverage
+
+# production
+/frontend/build
+
+# misc
+/frontend/.DS_Store
+/frontend/.env.local
+/frontend/.env.development.local
+/frontend/.env.test.local
+/frontend/.env.production.local
+
+/frontend/npm-debug.log*
+/frontend/yarn-debug.log*
+/frontend/yarn-error.log*
+
+/shared/.env
+/shared/.env.local 
+/shared/.env.development.local
+/shared/.env.test.local
+/shared/.env.production.local
+
+.env
+
+@
+
+/backend/node_modules
+/shared/node_modules
+
+
+node_modules
+
+# Build files
+*/dist/*
+*/build/*
+/frontend/build
+/backend/dist
+/shared/dist
+.build/
+dist/
