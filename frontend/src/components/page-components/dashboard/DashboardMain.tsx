@@ -1,61 +1,158 @@
 import React, { useState } from 'react';
 import { Button } from "../../shadcn/button";
-import { Plus, Edit, Music, Share2 } from "lucide-react";
+import { Plus, Edit, Music, Share2, TrendingUp, Users, Clock, Star } from "lucide-react";
 import { motion } from 'framer-motion';
 import { NewPostModal } from './NewPostModal';
+import { PostTimeline } from './PostTimeline';
 
-export interface DashboardMainProps {
+// Helper function to generate random data for the heatmap
+const generateHeatmapData = () => {
+    const weeks = 52;
+    const daysPerWeek = 7;
+    const data = [];
+    
+    // Start from the beginning of the current week
+    const now = new Date();
+    const currentDay = now.getDay();
+    const startDate = new Date(now);
+    startDate.setDate(now.getDate() - currentDay - (weeks * 7));
 
-}
+    for (let week = 0; week < weeks; week++) {
+        const weekData = [];
+        for (let day = 0; day < daysPerWeek; day++) {
+            const date = new Date(startDate);
+            date.setDate(startDate.getDate() + (week * 7) + day);
+            weekData.push({
+                date,
+                value: Math.floor(Math.random() * 5) // 0-4 posts per day
+            });
+        }
+        data.push(weekData);
+    }
+    
+    return data;
+};
 
-export const DashboardMain : React.FC<DashboardMainProps> = () => {
-    const [isModalOpen, setIsModalOpen] = useState(false);
-
-    return <div className="w-full h-full dark:text-white flex flex-col gap-2">
-        <h1 className='text-4xl font-bold '>Dashboard</h1>
-        <p>Add some additional information about your features in here please.</p>
-
-        <div className="flex justify-start items-center gap-2 flex-wrap lg:flex-no-wrap overflow-x-scroll">
-            <DashboardButton icon={<Plus />} text="New Post" subtext="Create a new content entry" onClick={() => setIsModalOpen(true)} />
-            <DashboardButton icon={<Edit />} text="Feature 2" subtext="Describe your second feature!" beta />
-            <DashboardButton icon={<Music />} text="Feature 3" subtext="Describe your third feature!" />
-            <DashboardButton icon={<Share2 />} text="Share" subtext="Post and Schedule your clips" />
-        </div>
-
-        <NewPostModal 
-            isOpen={isModalOpen} 
-            onClose={() => setIsModalOpen(false)} 
-        />
-    </div>
-}
-
-interface DashboardButtonProps {
+const AnalyticCard: React.FC<{
+    title: string;
+    value: string;
+    change: string;
     icon: React.ReactNode;
-    text: string;
-    subtext: string;
-    beta?: boolean;
-    onClick?: () => void;
-}
+}> = ({ title, value, change, icon }) => (
+    <div className="bg-neutral-900/50 text-white rounded-lg p-4 hover:bg-neutral-900/70 transition-all">
+        <div className="flex justify-between items-start">
+            <div>
+                <p className="text-sm text-neutral-400">{title}</p>
+                <p className="text-2xl font-bold mt-1">{value}</p>
+            </div>
+            <div className="p-2 bg-indigo-500/10 rounded-lg">
+                {icon}
+            </div>
+        </div>
+        <p className={`text-sm mt-2 ${
+            parseFloat(change) >= 0 ? 'text-green-400' : 'text-red-400'
+        }`}>
+            {change}% from last month
+        </p>
+    </div>
+);
 
-const DashboardButton: React.FC<DashboardButtonProps> = ({ icon, text, subtext, beta = false, onClick }) => {
-    const fadeIn = {
-        initial: { opacity: 0 },
-        animate: { opacity: 1 },
-        transition: { duration: 0.7 }
-      };
+export const DashboardMain: React.FC = () => {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const heatmapData = generateHeatmapData();
 
     return (
-        <Button variant="outline" className="h-auto w-full justify-start text-left max-w-[300px] " onClick={onClick}>
-            <motion.div {...fadeIn} className="flex items-center">
-                <div className="mr-3 text-2xl">{icon}</div>
-                <div>
-                    <div className="font-bold flex items-center">
-                        {text}
-                        {beta && <span className="ml-2 px-1 py-0.5 text-xs bg-purple-600 rounded">Beta</span>}
+        <div className="flex gap-6">
+            <div className="flex-1 h-full dark:text-white">
+                <div className="space-y-6">
+                    {/* Header Section */}
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h1 className='text-4xl font-bold'>Dashboard</h1>
+                            <p className="text-neutral-400 mt-2">Track and manage your content</p>
+                        </div>
+                        <Button 
+                            onClick={() => setIsModalOpen(true)}
+                            className="bg-indigo-500 hover:bg-indigo-600"
+                        >
+                            <Plus className="mr-2" /> New Post
+                        </Button>
                     </div>
-                    <div className="text-sm text-muted-foreground">{subtext}</div>
+
+                    {/* Heatmap Section */}
+                    <div className="bg-neutral-900/50 rounded-lg p-6">
+                        <h2 className="text-lg font-semibold mb-4">Content Activity</h2>
+                        <div className="flex gap-1">
+                            {heatmapData.map((week, weekIndex) => (
+                                <div key={weekIndex} className="flex flex-col gap-1">
+                                    {week.map((day, dayIndex) => (
+                                        <div
+                                            key={`${weekIndex}-${dayIndex}`}
+                                            className={`w-3 h-3 rounded-sm transition-colors`}
+                                            style={{
+                                                backgroundColor: `rgba(99, 102, 241, ${day.value * 0.25})`
+                                            }}
+                                            title={`${day.date.toDateString()}: ${day.value} posts`}
+                                        />
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                        {/* Optional: Add day labels */}
+                        <div className="flex gap-1 mt-2 text-xs text-neutral-400">
+                            <div className="w-8">Mon</div>
+                            <div className="w-8">Wed</div>
+                            <div className="w-8">Fri</div>
+                        </div>
+                    </div>
+
+                    {/* Timeline Section */}
+                    <div>
+                        <h2 className="text-2xl font-bold mb-4">Your Posts</h2>
+                        <PostTimeline />
+                    </div>
                 </div>
-            </motion.div>
-        </Button>
+
+                <NewPostModal 
+                    isOpen={isModalOpen} 
+                    onClose={() => setIsModalOpen(false)} 
+                />
+            </div>
+
+            {/* Analytics Sidebar */}
+            <div className="w-80 space-y-4">
+                <div className="bg-neutral-900/50 rounded-lg p-4">
+                    <h2 className="text-lg font-semibold mb-4 text-white">Overall Analytics</h2>
+                    <div className="space-y-4">
+                        <AnalyticCard
+                            title="Total Views"
+                            value="124.8k"
+                            change="+12.3"
+                            icon={<TrendingUp className="text-indigo-400" />}
+                        />
+                        <AnalyticCard
+                            title="Total Followers"
+                            value="1,234"
+                            change="+5.2"
+                            icon={<Users className="text-indigo-400" />}
+                        />
+                        <AnalyticCard
+                            title="Avg Watch Time"
+                            value="2:31"
+                            change="-1.5"
+                            icon={<Clock className="text-indigo-400" />}
+                        />
+                        <AnalyticCard
+                            title="Engagement Rate"
+                            value="4.6%"
+                            change="+0.8"
+                            icon={<Star className="text-indigo-400" />}
+                        />
+                    </div>
+                </div>
+
+                {/* Could add more sidebar sections here */}
+            </div>
+        </div>
     );
-}
+};
