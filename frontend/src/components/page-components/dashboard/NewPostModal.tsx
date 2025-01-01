@@ -136,7 +136,7 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({ isOpen, onClose }) =
             userId: authState.user.uid,
         };
 
-        const loadingToast = toast({
+        toast({
             title: 'Creating your post...',
             variant: 'default',
         });
