@@ -62,43 +62,42 @@ export const DashboardMain: React.FC = () => {
     const heatmapData = generateHeatmapData();
 
     return (
-        <div className="flex gap-6">
+        <div className="flex flex-col lg:flex-row gap-6">
             <div className="flex-1 h-full dark:text-white">
                 <div className="space-y-6">
-                    {/* Header Section */}
-                    <div className="flex justify-between items-start">
+                    <div className="flex flex-col sm:flex-row justify-between items-start gap-4 sm:gap-0">
                         <div>
-                            <h1 className='text-4xl font-bold'>Dashboard</h1>
+                            <h1 className='text-3xl sm:text-4xl font-bold'>Dashboard</h1>
                             <p className="text-neutral-400 mt-2">Track and manage your content</p>
                         </div>
                         <Button 
                             onClick={() => setIsModalOpen(true)}
-                            className="bg-indigo-500 hover:bg-indigo-600"
+                            className="bg-indigo-500 hover:bg-indigo-600 w-full sm:w-auto"
                         >
                             <Plus className="mr-2" /> New Post
                         </Button>
                     </div>
 
-                    {/* Heatmap Section */}
-                    <div className="bg-neutral-900/50 rounded-lg p-6">
+                    <div className="bg-neutral-900/50 rounded-lg p-4 sm:p-6">
                         <h2 className="text-lg font-semibold mb-4">Content Activity</h2>
-                        <div className="flex gap-1">
-                            {heatmapData.map((week, weekIndex) => (
-                                <div key={weekIndex} className="flex flex-col gap-1">
-                                    {week.map((day, dayIndex) => (
-                                        <div
-                                            key={`${weekIndex}-${dayIndex}`}
-                                            className={`w-3 h-3 rounded-sm transition-colors`}
-                                            style={{
-                                                backgroundColor: `rgba(99, 102, 241, ${day.value * 0.25})`
-                                            }}
-                                            title={`${day.date.toDateString()}: ${day.value} posts`}
-                                        />
-                                    ))}
-                                </div>
-                            ))}
+                        <div className="overflow-x-auto pb-2">
+                            <div className="flex gap-1 min-w-[750px]">
+                                {heatmapData.map((week, weekIndex) => (
+                                    <div key={weekIndex} className="flex flex-col gap-1">
+                                        {week.map((day, dayIndex) => (
+                                            <div
+                                                key={`${weekIndex}-${dayIndex}`}
+                                                className={`w-3 h-3 rounded-sm transition-colors`}
+                                                style={{
+                                                    backgroundColor: `rgba(99, 102, 241, ${day.value * 0.25})`
+                                                }}
+                                                title={`${day.date.toDateString()}: ${day.value} posts`}
+                                            />
+                                        ))}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                        {/* Optional: Add day labels */}
                         <div className="flex gap-1 mt-2 text-xs text-neutral-400">
                             <div className="w-8">Mon</div>
                             <div className="w-8">Wed</div>
@@ -106,7 +105,6 @@ export const DashboardMain: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Timeline Section */}
                     <div>
                         <h2 className="text-2xl font-bold mb-4">Your Posts</h2>
                         <PostTimeline />
@@ -119,11 +117,10 @@ export const DashboardMain: React.FC = () => {
                 />
             </div>
 
-            {/* Analytics Sidebar */}
-            <div className="w-80 space-y-4">
+            <div className="w-full lg:w-80 space-y-4">
                 <div className="bg-neutral-900/50 rounded-lg p-4">
                     <h2 className="text-lg font-semibold mb-4 text-white">Overall Analytics</h2>
-                    <div className="space-y-4">
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-1 gap-4">
                         <AnalyticCard
                             title="Total Views"
                             value="124.8k"
@@ -150,8 +147,6 @@ export const DashboardMain: React.FC = () => {
                         />
                     </div>
                 </div>
-
-                {/* Could add more sidebar sections here */}
             </div>
         </div>
     );

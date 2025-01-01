@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FirebaseDatabaseService } from 'shared';
 import { Skeleton } from '../../shadcn/skeleton';
-import { Edit, ChartBar, FileText, ChevronDown, Share2, Heart, MessageCircle, Play, Star, Clock, Percent, Trash2 } from 'lucide-react';
+import { Edit, ChartBar, FileText, ChevronDown, Share2, Heart, MessageCircle, Play, Star, Clock, Percent, Trash2, Save } from 'lucide-react';
 import { Button } from '../../shadcn/button';
 import { PostData } from 'shared';
 import { 
@@ -13,6 +13,10 @@ import {
     DialogHeader,
     DialogTitle,
 } from "../../shadcn/dialog";
+import type { Unsubscribe } from 'firebase/firestore';
+import { toast } from '../../../contexts/ToastProvider';
+import { useAuth } from '../../../contexts/AuthenticationProvider';
+import { Textarea } from "../../shadcn/textarea";
 
 interface Analytics {
     views?: number;
@@ -39,6 +43,10 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
     const [showNotes, setShowNotes] = useState(false);
     const [showAnalytics, setShowAnalytics] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [isEditingPreNotes, setIsEditingPreNotes] = useState(false);
+    const [isEditingPostNotes, setIsEditingPostNotes] = useState(false);
+    const [preNotes, setPreNotes] = useState(post.notes || '');
+    const [postNotes, setPostNotes] = useState(post.postReleaseNotes || '');
     const gradientColor = stringToColor(post.title);
     
     const analytics: Analytics = {
@@ -53,8 +61,49 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
     };
 
     const handleDelete = () => {
-        onDelete(post.id);
+        if (post.id) {
+            onDelete(post.id);
+        } else {
+            console.error('Post ID is undefined');
+        }
         setShowDeleteDialog(false);
+    };
+
+    const handleUpdateNotes = async (type: 'pre' | 'post') => {
+        if (!post.id) return;
+        
+        try {
+            await FirebaseDatabaseService.updateDocument(
+                'tiktok-posts',
+                post.id,
+                {
+                    ...(type === 'pre' ? { notes: preNotes } : { postReleaseNotes: postNotes })
+                },
+                () => {
+                    toast({
+                        title: 'Notes updated successfully',
+                        variant: 'default',
+                    });
+                    if (type === 'pre') {
+                        setIsEditingPreNotes(false);
+                    } else {
+                        setIsEditingPostNotes(false);
+                    }
+                },
+                (error) => {
+                    toast({
+                        title: 'Failed to update notes: ' + error.message,
+                        variant: 'destructive',
+                    });
+                }
+            );
+        } catch (error) {
+            console.error('Error updating notes:', error);
+            toast({
+                title: 'Something went wrong while updating notes',
+                variant: 'destructive',
+            });
+        }
     };
 
     return (
@@ -218,16 +267,63 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                         animate={{ opacity: 1, height: 'auto' }}
                         className="space-y-2"
                     >
-                        <div className="flex justify-between items-center gap-2">
+                        <div className="flex justify-between items-stretch gap-2">
                             {/* Pre-release Notes */}
                             <div className="border border-indigo-900/70 rounded-lg p-4 flex-1">
-                                <h4 className="font-semibold mb-2">Pre-release Notes</h4>
-                                <p className="text-neutral-300">{post.notes || 'No pre-release notes'}</p>
+                                <div className="flex justify-between items-center mb-2">
+                                    <h4 className="font-semibold">Pre-release Notes</h4>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                            if (isEditingPreNotes) {
+                                                handleUpdateNotes('pre');
+                                            } else {
+                                                setIsEditingPreNotes(true);
+                                            }
+                                        }}
+                                    >
+                                        {isEditingPreNotes ? <Save size={16} /> : <Edit size={16} />}
+                                    </Button>
+                                </div>
+                                {isEditingPreNotes ? (
+                                    <Textarea
+                                        value={preNotes}
+                                        onChange={(e) => setPreNotes(e.target.value)}
+                                        className="min-h-[100px] bg-neutral-800/50"
+                                    />
+                                ) : (
+                                    <p className="text-neutral-300">{preNotes || 'No pre-release notes'}</p>
+                                )}
                             </div>
+
                             {/* Post-release Notes */}
                             <div className="border border-indigo-800/70 rounded-lg p-4 flex-1">
-                                <h4 className="font-semibold mb-2">Post-release Notes</h4>
-                                <p className="text-neutral-300">No post-release notes yet</p>
+                                <div className="flex justify-between items-center mb-2">
+                                    <h4 className="font-semibold">Post-release Notes</h4>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                            if (isEditingPostNotes) {
+                                                handleUpdateNotes('post');
+                                            } else {
+                                                setIsEditingPostNotes(true);
+                                            }
+                                        }}
+                                    >
+                                        {isEditingPostNotes ? <Save size={16} /> : <Edit size={16} />}
+                                    </Button>
+                                </div>
+                                {isEditingPostNotes ? (
+                                    <Textarea
+                                        value={postNotes}
+                                        onChange={(e) => setPostNotes(e.target.value)}
+                                        className="min-h-[100px] bg-neutral-800/50"
+                                    />
+                                ) : (
+                                    <p className="text-neutral-300">{postNotes || 'No post-release notes yet'}</p>
+                                )}
                             </div>
                         </div>
                     </motion.div>
@@ -292,51 +388,80 @@ export const PostTimeline: React.FC = () => {
     const [posts, setPosts] = useState<PostData[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-
-    const handleDelete = async (postId: string) => {
-        try {
-            await FirebaseDatabaseService.deleteDocument(
-                'posts/videos',
-                postId,
-                () => {
-                    // Remove the post from local state
-                    setPosts(prev => prev.filter(post => post.id !== postId));
-                    toast.success('Post deleted successfully');
-                },
-                (error) => {
-                    toast.error('Failed to delete post: ' + error.message);
-                }
-            );
-        } catch (error) {
-            console.error('Error deleting post:', error);
-            toast.error('Something went wrong while deleting the post');
-        }
-    };
+    const {authState} = useAuth();
 
     useEffect(() => {
-        const loadPosts = async () => {
+        let unsubscribe: Unsubscribe;
+
+        const setupListener = () => {
+            if (!authState.user?.uid) {
+                setLoading(false);
+                setPosts([]);
+                return;
+            }
+
             try {
-                await FirebaseDatabaseService.complexQuery<PostData>(
+                unsubscribe = FirebaseDatabaseService.listenToQuery<PostData>(
                     'tiktok-posts',
-                    [], // No filters
-                    [{ field: 'createdAt', direction: 'desc' }],
-                    (results) => {
-                        setPosts(results);
+                    'userId',
+                    authState.user.uid,
+                    'createdAt',
+                    (updatedPosts) => {
+                        console.log('updatedPosts', updatedPosts);
+                        if (updatedPosts) {
+                            setPosts(updatedPosts);
+                        }
                         setLoading(false);
                     },
                     (error) => {
+                        console.error('Query error:', error);
                         setError(error.message);
                         setLoading(false);
                     }
                 );
             } catch (err) {
-                setError('Failed to load posts');
+                console.error('Setup error:', err);
+                setError('Failed to setup post listener');
                 setLoading(false);
             }
         };
 
-        loadPosts();
-    }, []);
+        setupListener();
+
+        return () => {
+            if (unsubscribe) {
+                unsubscribe();
+            }
+        };
+    }, [authState.user?.uid]);
+
+    const handleDelete = async (postId: string) => {
+        try {
+            await FirebaseDatabaseService.deleteDocument(
+                'tiktok-posts',
+                postId,
+                () => {
+                    // No need to manually update posts state as the listener will handle it
+                    toast({
+                        title: 'Post deleted successfully',
+                        variant: 'default',
+                    });
+                },
+                (error) => {
+                    toast({
+                        title: 'Failed to delete post: ' + error.message,
+                        variant: 'destructive',
+                    });
+                }
+            );
+        } catch (error) {
+            console.error('Error deleting post:', error);
+            toast({
+                title: 'Something went wrong while deleting the post',
+                variant: 'destructive',
+            });
+        }
+    };
 
     if (error) {
         return (
@@ -356,6 +481,7 @@ export const PostTimeline: React.FC = () => {
                 </>
             ) : (
                 <motion.div
+                    className="space-y-4"
                     initial="hidden"
                     animate="visible"
                     variants={{
