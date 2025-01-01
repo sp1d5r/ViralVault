@@ -2,9 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FirebaseDatabaseService } from 'shared';
 import { Skeleton } from '../../shadcn/skeleton';
-import { Edit, ChartBar, FileText, ChevronDown, Share2, Heart, MessageCircle, Play, Star, Clock, Percent } from 'lucide-react';
+import { Edit, ChartBar, FileText, ChevronDown, Share2, Heart, MessageCircle, Play, Star, Clock, Percent, Trash2 } from 'lucide-react';
 import { Button } from '../../shadcn/button';
-import { PostData } from '@shared';
+import { PostData } from 'shared';
+import { 
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "../../shadcn/dialog";
 
 interface Analytics {
     views?: number;
@@ -27,9 +35,10 @@ const stringToColor = (str: string) => {
     return `hsl(${h}, 70%, 50%)`;
 };
 
-const PostTimelineItem: React.FC<{ post: PostData }> = ({ post }) => {
+const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => void }> = ({ post, onDelete }) => {
     const [showNotes, setShowNotes] = useState(false);
     const [showAnalytics, setShowAnalytics] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const gradientColor = stringToColor(post.title);
     
     const analytics: Analytics = {
@@ -41,6 +50,11 @@ const PostTimelineItem: React.FC<{ post: PostData }> = ({ post }) => {
         totalPlayTime: 0,
         avgWatchTime: 0,
         fullVideoPercentage: 0
+    };
+
+    const handleDelete = () => {
+        onDelete(post.id);
+        setShowDeleteDialog(false);
     };
 
     return (
@@ -132,6 +146,14 @@ const PostTimelineItem: React.FC<{ post: PostData }> = ({ post }) => {
                                 >
                                     <FileText size={16} />
                                 </Button>
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => setShowDeleteDialog(true)}
+                                    className="text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                                >
+                                    <Trash2 size={16} />
+                                </Button>
                             </div>
                         </div>
                     </div>
@@ -210,6 +232,32 @@ const PostTimelineItem: React.FC<{ post: PostData }> = ({ post }) => {
                         </div>
                     </motion.div>
                 )}
+
+                {/* Delete Confirmation Dialog */}
+                <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                    <DialogContent className="sm:max-w-[425px] text-white">
+                        <DialogHeader>
+                            <DialogTitle>Delete Post</DialogTitle>
+                            <DialogDescription>
+                                Are you sure you want to delete "{post.title}"? This action cannot be undone.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter className="gap-2 mt-4">
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowDeleteDialog(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleDelete}
+                                className="bg-red-500 hover:bg-red-600"
+                            >
+                                Delete
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </motion.div>
     );
@@ -244,6 +292,26 @@ export const PostTimeline: React.FC = () => {
     const [posts, setPosts] = useState<PostData[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const handleDelete = async (postId: string) => {
+        try {
+            await FirebaseDatabaseService.deleteDocument(
+                'posts/videos',
+                postId,
+                () => {
+                    // Remove the post from local state
+                    setPosts(prev => prev.filter(post => post.id !== postId));
+                    toast.success('Post deleted successfully');
+                },
+                (error) => {
+                    toast.error('Failed to delete post: ' + error.message);
+                }
+            );
+        } catch (error) {
+            console.error('Error deleting post:', error);
+            toast.error('Something went wrong while deleting the post');
+        }
+    };
 
     useEffect(() => {
         const loadPosts = async () => {
@@ -299,7 +367,11 @@ export const PostTimeline: React.FC = () => {
                     }}
                 >
                     {posts.map((post) => (
-                        <PostTimelineItem key={post.id} post={post} />
+                        <PostTimelineItem 
+                            key={post.id} 
+                            post={post} 
+                            onDelete={handleDelete}
+                        />
                     ))}
                 </motion.div>
             )}
