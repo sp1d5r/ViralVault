@@ -1,6 +1,17 @@
 import { Identifiable } from "../services/database/DatabaseInterface";
 
-export interface PostData extends Identifiable{
+export interface Analytics {
+    views?: number;
+    likes?: number;
+    comments?: number;
+    shares?: number;
+    favorites?: number;
+    totalPlayTime?: number;
+    avgWatchTime?: number;
+    fullVideoPercentage?: number;
+}
+
+export interface PostData extends Identifiable {
     title: string;
     postDate: string;
     status: 'draft' | 'posted';
@@ -12,4 +23,5 @@ export interface PostData extends Identifiable{
     tags: string[];
     createdAt: number;
     userId: string;
+    analytics?: Analytics;
 }
