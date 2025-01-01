@@ -9,6 +9,7 @@ export interface Analytics {
     totalPlayTime?: number;
     avgWatchTime?: number;
     fullVideoPercentage?: number;
+    newFollowers?: number;
 }
 
 export interface PostData extends Identifiable {
