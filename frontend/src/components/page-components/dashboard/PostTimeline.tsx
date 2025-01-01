@@ -17,6 +17,7 @@ import type { Unsubscribe } from 'firebase/firestore';
 import { toast } from '../../../contexts/ToastProvider';
 import { useAuth } from '../../../contexts/AuthenticationProvider';
 import { Textarea } from "../../shadcn/textarea";
+import { EditPostModal } from './EditPostModal';
 
 // Function to generate a color from string
 const stringToColor = (str: string) => {
@@ -48,6 +49,7 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
         avgWatchTime: 0,
         fullVideoPercentage: 0
     });
+    const [showEditModal, setShowEditModal] = useState(false);
     
     const handleDelete = () => {
         if (post.id) {
@@ -203,7 +205,11 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
 
                             {/* Action Buttons */}
                             <div className="flex gap-2 mt-2">
-                                <Button variant="ghost" size="sm">
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => setShowEditModal(true)}
+                                >
                                     <Edit size={16} />
                                 </Button>
                                 <Button 
@@ -464,6 +470,12 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
+
+                <EditPostModal 
+                    isOpen={showEditModal}
+                    onClose={() => setShowEditModal(false)}
+                    post={post}
+                />
             </div>
         </motion.div>
     );
