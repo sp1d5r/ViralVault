@@ -14,6 +14,7 @@ import { ApiProvider } from './contexts/ApiContext';
 import { ArticlePage } from './pages/ArticlePage';
 import { ProfileProvider } from './contexts/ProfileProvider';
 import Onboarding from './pages/Onboarding';
+import { Toaster } from './components/shadcn/toaster';
 
 // Example components for different routes
 const About = () => <ScrollableLayout><h2>About Page</h2></ScrollableLayout>;
@@ -50,6 +51,7 @@ function App() {
 
                   <Route path="*" element={<NotFound />} />
                 </Routes>
+                <Toaster />
               </ApiProvider>
             </ProfileProvider>
           </AuthProvider>

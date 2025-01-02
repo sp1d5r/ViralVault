@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FirebaseDatabaseService } from 'shared';
 import { Skeleton } from '../../shadcn/skeleton';
-import { Edit, ChartBar, FileText, ChevronDown, Share2, Heart, MessageCircle, Play, Star, Clock, Percent, Trash2, Save } from 'lucide-react';
+import { Edit, ChartBar, FileText, ChevronDown, Share2, Heart, MessageCircle, Play, Star, Clock, Percent, Trash2, Save, UserPlus } from 'lucide-react';
 import { Button } from '../../shadcn/button';
 import { PostData, Analytics } from 'shared';
 import { 
@@ -18,6 +18,9 @@ import { toast } from '../../../contexts/ToastProvider';
 import { useAuth } from '../../../contexts/AuthenticationProvider';
 import { Textarea } from "../../shadcn/textarea";
 import { EditPostModal } from './EditPostModal';
+import { parseTimeToSeconds, formatSecondsToTime } from '../../../lib/utils';
+import { Input } from '../../shadcn/input';
+import { GraphContainer } from './ChartContainer';
 
 // Function to generate a color from string
 const stringToColor = (str: string) => {
@@ -28,6 +31,7 @@ const stringToColor = (str: string) => {
     const h = hash % 360;
     return `hsl(${h}, 70%, 50%)`;
 };
+
 
 const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => void }> = ({ post, onDelete }) => {
     const [showNotes, setShowNotes] = useState(false);
@@ -185,21 +189,27 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                             )}
 
                             {/* Analytics Preview */}
-                            <div className="flex justify-start items-center gap-2">
+                            <div className="flex flex-wrap justify-start items-center gap-2">
                                 <div className="flex items-center gap-2 rounded-xl bg-neutral-800/50 p-2">
-                                    <Play size={14} /> {analytics.views || '0'}
+                                    <Play size={14} /> {analytics.views?.toLocaleString() || '0'}
                                 </div>
                                 <div className="flex items-center gap-2 rounded-xl bg-neutral-800/50 p-2">
-                                    <Heart size={14} /> {analytics.likes || '0'}
+                                    <Heart size={14} /> {analytics.likes?.toLocaleString() || '0'}
                                 </div>
                                 <div className="flex items-center gap-2 rounded-xl bg-neutral-800/50 p-2">
-                                    <MessageCircle size={14} /> {analytics.comments || '0'}
+                                    <MessageCircle size={14} /> {analytics.comments?.toLocaleString() || '0'}
                                 </div>
                                 <div className="flex items-center gap-2 rounded-xl bg-neutral-800/50 p-2">
-                                    <Share2 size={14} /> {analytics.shares || '0'}
+                                    <Share2 size={14} /> {analytics.shares?.toLocaleString() || '0'}
                                 </div>
                                 <div className="flex items-center gap-2 rounded-xl bg-neutral-800/50 p-2">
-                                    <Star size={14} /> {analytics.favorites || '0'}
+                                    <Star size={14} /> {analytics.favorites?.toLocaleString() || '0'}
+                                </div>
+                                <div className="flex items-center gap-2 rounded-xl bg-neutral-800/50 p-2">
+                                    <Clock size={14} /> {formatSecondsToTime(analytics.totalPlayTime || 0)}
+                                </div>
+                                <div className="flex items-center gap-2 rounded-xl bg-neutral-800/50 p-2">
+                                    <UserPlus size={14} /> {analytics.newFollowers?.toLocaleString() || '0'}
                                 </div>
                             </div>
 
@@ -239,139 +249,183 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                     </div>
                 </div>
                 {/* Expandable Notes Sections */}
-                {showAnalytics&& (
+                {showAnalytics && (
                     <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         className="space-y-2"
                     >
-
-                        {/* Detailed Analytics */}
                         <div className="border border-indigo-700/50 rounded-lg p-4">
-                        <div className="flex justify-between items-center pr-4">
-                            <h4 className="font-semibold mb-4">Detailed Analytics</h4>
-                            <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => {
-                                    if (isEditingAnalytics) {
-                                        handleUpdateAnalytics();
-                                    } else {
-                                        setIsEditingAnalytics(true);
-                                    }
-                                }}
-                            >
-                                {isEditingAnalytics ? <Save size={16} /> : <Edit size={16} />}
-                            </Button>
-                        </div>
-                            <div className="flex items-center justify-between px-8 gap-4">
-                                {/* Views */}
-                                <div className="space-y-1">
-                                    <div className="text-sm text-neutral-400">Views</div>
-                                    {isEditingAnalytics ? (
-                                        <input
-                                            type="number"
-                                            value={analytics.views}
-                                            onChange={(e) => setAnalytics(prev => ({
-                                                ...prev,
-                                                views: parseInt(e.target.value) || 0
-                                            }))}
-                                            className="w-full bg-neutral-800 rounded px-2 py-1"
-                                        />
-                                    ) : (
-                                        <div className="flex items-center gap-2">
-                                            <Play size={14} />
-                                            {analytics.views || '0'}
+                            <div className="flex justify-between items-center mb-4">
+                                <h4 className="font-semibold">Detailed Analytics</h4>
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => {
+                                        if (isEditingAnalytics) {
+                                            handleUpdateAnalytics();
+                                        } else {
+                                            setIsEditingAnalytics(true);
+                                        }
+                                    }}
+                                >
+                                    {isEditingAnalytics ? <Save size={16} /> : <Edit size={16} />}
+                                </Button>
+                            </div>
+
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {/* Engagement Metrics */}
+                                <div className="space-y-4">
+                                    <h5 className="text-sm font-medium text-neutral-400">Engagement</h5>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-neutral-400">Views</span>
+                                            {isEditingAnalytics ? (
+                                                <Input
+                                                    type="number"
+                                                    value={analytics.views}
+                                                    onChange={(e) => setAnalytics(prev => ({
+                                                        ...prev,
+                                                        views: parseInt(e.target.value) || 0
+                                                    }))}
+                                                    className="w-24 h-7 text-right"
+                                                />
+                                            ) : (
+                                                <span>{analytics.views?.toLocaleString()}</span>
+                                            )}
                                         </div>
-                                    )}
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-neutral-400">Likes</span>
+                                            {isEditingAnalytics ? (
+                                                <Input
+                                                    type="number"
+                                                    value={analytics.likes}
+                                                    onChange={(e) => setAnalytics(prev => ({
+                                                        ...prev,
+                                                        likes: parseInt(e.target.value) || 0
+                                                    }))}
+                                                    className="w-24 h-7 text-right"
+                                                />
+                                            ) : (
+                                                <span>{analytics.likes?.toLocaleString()}</span>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
 
-                                {/* Likes */}
-                                <div className="space-y-1">
-                                    <div className="text-sm text-neutral-400">Likes</div>
-                                    {isEditingAnalytics ? (
-                                        <input
-                                            type="number"
-                                            value={analytics.likes}
-                                            onChange={(e) => setAnalytics(prev => ({
-                                                ...prev,
-                                                likes: parseInt(e.target.value) || 0
-                                            }))}
-                                            className="w-full bg-neutral-800 rounded px-2 py-1"
-                                        />
-                                    ) : (
-                                        <div className="flex items-center gap-2">
-                                            <Heart size={14} />
-                                            {analytics.likes || '0'}
+                                {/* Watch Time Metrics */}
+                                <div className="space-y-4">
+                                    <h5 className="text-sm font-medium text-neutral-400">Watch Time</h5>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-neutral-400">Total Play Time</span>
+                                            {isEditingAnalytics ? (
+                                                <Input
+                                                    type="text"
+                                                    value={formatSecondsToTime(analytics.totalPlayTime || 0)}
+                                                    onChange={(e) => setAnalytics(prev => ({
+                                                        ...prev,
+                                                        totalPlayTime: parseTimeToSeconds(e.target.value)
+                                                    }))}
+                                                    className="w-32 h-7 text-right"
+                                                />
+                                            ) : (
+                                                <span>{formatSecondsToTime(analytics.totalPlayTime || 0)}</span>
+                                            )}
                                         </div>
-                                    )}
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-neutral-400">Avg Watch Time</span>
+                                            {isEditingAnalytics ? (
+                                                <Input
+                                                    type="number"
+                                                    step="0.1"
+                                                    value={analytics.avgWatchTime}
+                                                    onChange={(e) => setAnalytics(prev => ({
+                                                        ...prev,
+                                                        avgWatchTime: parseFloat(e.target.value) || 0
+                                                    }))}
+                                                    className="w-24 h-7 text-right"
+                                                />
+                                            ) : (
+                                                <span>{analytics.avgWatchTime?.toFixed(1)}s</span>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
 
-                                {/* Comments */}
-                                <div className="space-y-1">
-                                    <div className="text-sm text-neutral-400">Comments</div>
-                                    {isEditingAnalytics ? (
-                                        <input
-                                            type="number"
-                                            value={analytics.comments}
-                                            onChange={(e) => setAnalytics(prev => ({
-                                                ...prev,
-                                                comments: parseInt(e.target.value) || 0
-                                            }))}
-                                            className="w-full bg-neutral-800 rounded px-2 py-1"
-                                        />
-                                    ) : (
-                                        <div className="flex items-center gap-2">
-                                            <MessageCircle size={14} />
-                                            {analytics.comments || '0'}
+                                {/* Growth Metrics */}
+                                <div className="space-y-4">
+                                    <h5 className="text-sm font-medium text-neutral-400">Growth</h5>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-neutral-400">New Followers</span>
+                                            {isEditingAnalytics ? (
+                                                <Input
+                                                    type="number"
+                                                    value={analytics.newFollowers}
+                                                    onChange={(e) => setAnalytics(prev => ({
+                                                        ...prev,
+                                                        newFollowers: parseInt(e.target.value) || 0
+                                                    }))}
+                                                    className="w-24 h-7 text-right"
+                                                />
+                                            ) : (
+                                                <span>{analytics.newFollowers?.toLocaleString() || 0}</span>
+                                            )}
                                         </div>
-                                    )}
+                                    </div>
                                 </div>
 
-                                {/* Shares */}
-                                <div className="space-y-1">
-                                    <div className="text-sm text-neutral-400">Shares</div>
-                                    {isEditingAnalytics ? (
-                                        <input
-                                            type="number"
-                                            value={analytics.shares}
-                                            onChange={(e) => setAnalytics(prev => ({
-                                                ...prev,
-                                                shares: parseInt(e.target.value) || 0
-                                            }))}
-                                            className="w-full bg-neutral-800 rounded px-2 py-1"
-                                        />
-                                    ) : (
-                                        <div className="flex items-center gap-2">
-                                            <Share2 size={14} />
-                                            {analytics.shares || '0'}
+                                {/* Performance Metrics */}
+                                <div className="space-y-4">
+                                    <h5 className="text-sm font-medium text-neutral-400">Performance</h5>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-neutral-400">Full Video %</span>
+                                            {isEditingAnalytics ? (
+                                                <Input
+                                                    type="number"
+                                                    min="0"
+                                                    max="100"
+                                                    value={analytics.fullVideoPercentage}
+                                                    onChange={(e) => setAnalytics(prev => ({
+                                                        ...prev,
+                                                        fullVideoPercentage: parseInt(e.target.value) || 0
+                                                    }))}
+                                                    className="w-24 h-7 text-right"
+                                                />
+                                            ) : (
+                                                <span>{analytics.fullVideoPercentage}%</span>
+                                            )}
                                         </div>
-                                    )}
+                                    </div>
                                 </div>
-
-                                <div className="space-y-1">
-                                    <div className="text-sm text-neutral-400">Favorites</div>
-                                    {isEditingAnalytics ? (
-                                        <input
-                                            type="number"
-                                            value={analytics.favorites}
-                                            onChange={(e) => setAnalytics(prev => ({
-                                                ...prev,
-                                                favorites: parseInt(e.target.value) || 0
-                                            }))}
-                                            className="w-full bg-neutral-800 rounded px-2 py-1"
-                                        />
-                                    ) : (
-                                        <div className="flex items-center gap-2">
-                                            <Star size={14} />
-                                            {analytics.favorites || '0'}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Add similar blocks for other analytics fields */}
                             </div>
                         </div>
+                        <GraphContainer
+                                title="24-Hour View Distribution"
+                                xAxisTitle="Hour"
+                                yAxisTitle="Views"
+                                borderColor="border-indigo-500"
+                                xAxisType="hours"
+                                maxXValue={24}
+                                onSubmit={(newData) => {
+                                    // Handle data updates
+                                    console.log('New data:', newData);
+                                }}
+                            />
+
+                            <GraphContainer
+                                title="Video Retention"
+                                xAxisTitle="Time (seconds)"
+                                yAxisTitle="Viewers (%)"
+                                borderColor="border-green-500"
+                                xAxisType="seconds"
+                                onSubmit={(newData) => {
+                                    // Handle data updates
+                                    console.log('New data:', newData);
+                                }}
+                            />
                     </motion.div>
                 )}
 
