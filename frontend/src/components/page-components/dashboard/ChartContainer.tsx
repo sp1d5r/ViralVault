@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Edit, Save } from 'lucide-react';
 import { Button } from '../../shadcn/button';
 import { Input } from '../../shadcn/input';
@@ -50,6 +50,7 @@ export const GraphContainer: React.FC<GraphContainerProps> = ({
     const [isSettingMaxX, setIsSettingMaxX] = useState(!maxXValue && xAxisType === 'seconds');
     const [isDragging, setIsDragging] = useState(false);
     const [activePointIndex, setActivePointIndex] = useState<number | null>(null);
+    const chartRef = useRef<HTMLDivElement>(null);
 
     // Prevent text selection during editing
     useEffect(() => {
@@ -80,35 +81,36 @@ export const GraphContainer: React.FC<GraphContainerProps> = ({
     }, [isDragging]);
 
     const handleChartMouseMove = (e: any) => {
-        console.log('Chart mouse move:', {
-            isDragging,
-            activePointIndex,
-            event: e
-        });
-
         if (!isDragging || activePointIndex === null || !e?.chartY) {
             return;
         }
 
-        // Recharts provides normalized coordinates
-        const chartHeight = e.height || 400;
+        // Get the actual chart height from the ref
+        const chartHeight = chartRef.current?.clientHeight || 250; // 250 is our default chart height
         const valueRange = 100;
-        const newY = Math.max(0, Math.min(100, valueRange * (1 - e.chartY / chartHeight)));
+        
+        // Adjust the calculation to use the full range
+        const newY = Math.max(0, Math.min(100, valueRange * (1 - (e.chartY / chartHeight))));
 
-        console.log('Calculating new Y:', {
-            chartHeight,
-            chartY: e.chartY,
-            newY,
-            activePointIndex
+        console.log('Chart dimensions:', {
+            actualHeight: chartHeight,
+            mouseY: e.chartY,
+            calculatedValue: newY
         });
 
         setEditableData(prev => {
-            const newData = [...prev];
-            newData[activePointIndex] = {
-                ...newData[activePointIndex],
-                y: Math.round(newY * 10) / 10
-            };
-            return newData;
+            const currentY = prev[activePointIndex].y;
+            const roundedNewY = Math.round(newY * 10) / 10;
+            
+            if (Math.abs(currentY - roundedNewY) > 0.1) {
+                const newData = [...prev];
+                newData[activePointIndex] = {
+                    ...newData[activePointIndex],
+                    y: roundedNewY
+                };
+                return newData;
+            }
+            return prev;
         });
     };
 
@@ -210,7 +212,7 @@ export const GraphContainer: React.FC<GraphContainerProps> = ({
                 </div>
             </div>
 
-            <div className="h-[250px] w-full">
+            <div className="h-[250px] w-full" ref={chartRef}>
                 <ResponsiveContainer width="100%" height="100%">
                     <LineChart 
                         data={editableData}
@@ -253,26 +255,26 @@ export const GraphContainer: React.FC<GraphContainerProps> = ({
                         <Line
                             type="monotone"
                             dataKey="y"
-                            stroke={borderColor.replace('border-', 'rgb(')}
+                            stroke="white"
                             dot={isEditing ? {
                                 r: 4,
                                 cursor: isDragging ? 'grabbing' : 'grab',
                                 onMouseDown: (e: any, payload: any) => {
-                                    console.log('Dot mouse down raw:', {
-                                        e,
-                                        payload,
-                                        value: payload?.value,
-                                        dataIndex: payload?.payload?.index
-                                    });
+                                    // console.log('Dot mouse down raw:', {
+                                    //     e,
+                                    //     payload,
+                                    //     value: payload?.value,
+                                    //     dataIndex: payload?.payload?.index
+                                    // });
                                     
                                     // The index is in payload.payload.index
                                     const index = payload?.payload?.index;
                                     
-                                    console.log('Dot mouse down processed:', {
-                                        index,
-                                        allData: editableData,
-                                        currentPoint: editableData[index]
-                                    });
+                                    // console.log('Dot mouse down processed:', {
+                                    //     index,
+                                    //     allData: editableData,
+                                    //     currentPoint: editableData[index]
+                                    // });
                                     
                                     if (typeof index === 'number') {
                                         setIsDragging(true);
@@ -285,10 +287,10 @@ export const GraphContainer: React.FC<GraphContainerProps> = ({
                                 cursor: isDragging ? 'grabbing' : 'grab',
                                 onMouseDown: (e: any, payload: any) => {
                                     // For activeDot, the index is in payload.index
-                                    console.log('ActiveDot mouse down:', {
-                                        payload,
-                                        index: payload?.index
-                                    });
+                                    // console.log('ActiveDot mouse down:', {
+                                    //     payload,
+                                    //     index: payload?.index
+                                    // });
                                     
                                     if (typeof payload?.index === 'number') {
                                         setIsDragging(true);
