@@ -147,7 +147,7 @@ export const GraphContainer: React.FC<GraphContainerProps> = ({
             <div className={`border ${borderColor} rounded-lg p-4 h-[300px]`}>
                 <div className="h-full flex flex-col items-center justify-center gap-4">
                     <h3 className="text-lg font-semibold">{title}</h3>
-                    <div className="w-64 space-y-2">
+                    <div className="w-full md:w-64 space-y-2">
                         <Label>Video Duration (seconds)</Label>
                         <Input
                             type="number"
@@ -215,17 +215,16 @@ export const GraphContainer: React.FC<GraphContainerProps> = ({
                 </div>
             </div>
 
-            <div className="h-[250px] w-full" ref={chartRef}>
+            <div className="h-[250px] w-[calc(100%+8px)] -mx-4 md:w-full md:mx-0" ref={chartRef}>
                 <ResponsiveContainer width="100%" height="100%">
                     <LineChart 
                         data={editableData}
                         onMouseMove={handleChartMouseMove}
                         onMouseLeave={() => {
-                            console.log('Mouse left chart');
                             setIsDragging(false);
                             setActivePointIndex(null);
                         }}
-                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                        margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
                     >
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis

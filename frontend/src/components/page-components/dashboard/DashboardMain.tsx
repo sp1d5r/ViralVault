@@ -78,7 +78,7 @@ export const DashboardMain: React.FC = () => {
                         </Button>
                     </div>
 
-                    <div className="bg-neutral-900/50 rounded-lg p-4 sm:p-6">
+                    <div className="bg-neutral-900/50 rounded-lg p-0 md:p-4 sm:p-6">
                         <h2 className="text-lg font-semibold mb-4">Content Activity</h2>
                         <div className="overflow-x-auto pb-2">
                             <div className="flex gap-1 min-w-[750px]">
