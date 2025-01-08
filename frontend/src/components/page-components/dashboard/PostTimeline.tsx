@@ -560,6 +560,34 @@ const PostTimelineSkeleton = () => (
     </div>
 );
 
+const formatDateHeader = (date: Date): string => {
+    return date.toLocaleDateString('en-US', { 
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    });
+};
+
+const groupPostsByDay = (posts: PostData[]): Map<string, PostData[]> => {
+    const grouped = new Map<string, PostData[]>();
+    
+    posts.forEach(post => {
+        const date = new Date(post.postDate);
+        const dateKey = date.toDateString(); // Use date string as key
+        
+        if (!grouped.has(dateKey)) {
+            grouped.set(dateKey, []);
+        }
+        grouped.get(dateKey)?.push(post);
+    });
+    
+    // Sort the map by date (most recent first)
+    return new Map([...grouped.entries()].sort((a, b) => 
+        new Date(b[0]).getTime() - new Date(a[0]).getTime()
+    ));
+};
+
 export const PostTimeline: React.FC = () => {
     const [posts, setPosts] = useState<PostData[]>([]);
     const [loading, setLoading] = useState(true);
@@ -647,6 +675,8 @@ export const PostTimeline: React.FC = () => {
         );
     }
 
+    const groupedPosts = groupPostsByDay(posts);
+
     return (
         <div className="relative">
             {loading ? (
@@ -657,7 +687,7 @@ export const PostTimeline: React.FC = () => {
                 </>
             ) : (
                 <motion.div
-                    className="space-y-4"
+                    className="space-y-8" // Increased spacing between groups
                     initial="hidden"
                     animate="visible"
                     variants={{
@@ -668,12 +698,22 @@ export const PostTimeline: React.FC = () => {
                         }
                     }}
                 >
-                    {posts.map((post) => (
-                        <PostTimelineItem 
-                            key={post.id} 
-                            post={post} 
-                            onDelete={handleDelete}
-                        />
+                    {Array.from(groupedPosts.entries()).map(([dateKey, dayPosts]) => (
+                        <div key={dateKey} className="space-y-4">
+                            {/* Date Header */}
+                            <h3 className="text-lg font-semibold text-neutral-400 px-4 md:px-8">
+                                {formatDateHeader(new Date(dateKey))}
+                            </h3>
+                            
+                            {/* Posts for this day */}
+                            {dayPosts.map((post) => (
+                                <PostTimelineItem 
+                                    key={post.id} 
+                                    post={post} 
+                                    onDelete={handleDelete}
+                                />
+                            ))}
+                        </div>
                     ))}
                 </motion.div>
             )}
