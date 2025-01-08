@@ -63,7 +63,39 @@ export const DashboardMain: React.FC = () => {
 
     return (
         <div className="flex flex-col lg:flex-row gap-6">
-            <div className="flex-1 h-full dark:text-white">
+            <div className="order-1 lg:order-2 w-full lg:w-80 space-y-4">
+                <div className="bg-neutral-900/50 rounded-lg p-4">
+                    <h2 className="text-lg font-semibold mb-4 text-white">Overall Analytics</h2>
+                    <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
+                        <AnalyticCard
+                            title="Total Views"
+                            value="124.8k"
+                            change="+12.3"
+                            icon={<TrendingUp className="text-indigo-400" />}
+                        />
+                        <AnalyticCard
+                            title="Total Followers"
+                            value="1,234"
+                            change="+5.2"
+                            icon={<Users className="text-indigo-400" />}
+                        />
+                        <AnalyticCard
+                            title="Avg Watch Time"
+                            value="2:31"
+                            change="-1.5"
+                            icon={<Clock className="text-indigo-400" />}
+                        />
+                        <AnalyticCard
+                            title="Engagement Rate"
+                            value="4.6%"
+                            change="+0.8"
+                            icon={<Star className="text-indigo-400" />}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <div className="order-2 lg:order-1 flex-1 h-full dark:text-white">
                 <div className="space-y-6">
                     <div className="flex flex-col sm:flex-row justify-between items-start gap-4 sm:gap-0">
                         <div>
@@ -115,38 +147,6 @@ export const DashboardMain: React.FC = () => {
                     isOpen={isModalOpen} 
                     onClose={() => setIsModalOpen(false)} 
                 />
-            </div>
-
-            <div className="w-full lg:w-80 space-y-4">
-                <div className="bg-neutral-900/50 rounded-lg p-4">
-                    <h2 className="text-lg font-semibold mb-4 text-white">Overall Analytics</h2>
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-1 gap-4">
-                        <AnalyticCard
-                            title="Total Views"
-                            value="124.8k"
-                            change="+12.3"
-                            icon={<TrendingUp className="text-indigo-400" />}
-                        />
-                        <AnalyticCard
-                            title="Total Followers"
-                            value="1,234"
-                            change="+5.2"
-                            icon={<Users className="text-indigo-400" />}
-                        />
-                        <AnalyticCard
-                            title="Avg Watch Time"
-                            value="2:31"
-                            change="-1.5"
-                            icon={<Clock className="text-indigo-400" />}
-                        />
-                        <AnalyticCard
-                            title="Engagement Rate"
-                            value="4.6%"
-                            change="+0.8"
-                            icon={<Star className="text-indigo-400" />}
-                        />
-                    </div>
-                </div>
             </div>
         </div>
     );
