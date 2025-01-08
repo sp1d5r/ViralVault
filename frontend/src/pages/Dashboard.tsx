@@ -9,9 +9,6 @@ import {
 import { motion } from "framer-motion";
 import { cn } from "../lib/utils";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Button } from "../components/shadcn/button";
-import { Moon, Sun } from "lucide-react";
-import { useDarkMode } from "../contexts/DarkModeProvider";
 import { DashboardMain } from "../components/page-components/dashboard/DashboardMain";
 import { AuthStatus, useAuth } from "../contexts/AuthenticationProvider";
 import { ProfileStatus, useProfile } from "../contexts/ProfileProvider";
@@ -22,7 +19,6 @@ const Dashboard: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const {darkModeState, toggleDarkMode} = useDarkMode();
   const [activeContent, setActiveContent] = useState<string>("home");
   const { authState, logout } = useAuth();
   const { status: profileStatus, profile} = useProfile();
