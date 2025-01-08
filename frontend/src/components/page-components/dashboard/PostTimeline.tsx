@@ -149,9 +149,9 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
             {/* Content card */}
             <div className="flex-1 space-y-4">
                 <div className="bg-neutral-900/50 rounded-lg p-4 hover:bg-neutral-900/70 transition-all">
-                    <div className="flex gap-4">
+                    <div className="flex flex-col md:flex-row gap-4">
                         <div 
-                            className="w-16 h-16 md:w-24 md:h-24 rounded-lg flex-shrink-0"
+                            className="w-full h-32 md:w-24 md:h-24 rounded-lg flex-shrink-0"
                             style={{
                                 background: `linear-gradient(135deg, ${gradientColor}, ${stringToColor(post.title + 'alt')})`
                             }}
@@ -545,8 +545,8 @@ const PostTimelineSkeleton = () => (
 
         {/* Content card */}
         <div className="flex-1 bg-neutral-900/50 rounded-lg p-4">
-            <div className="flex gap-4">
-                <Skeleton className="w-16 h-16 md:w-24 md:h-24 rounded-lg flex-shrink-0" />
+            <div className="flex flex-col md:flex-row gap-4">
+                <Skeleton className="w-full h-32 md:w-24 md:h-24 rounded-lg flex-shrink-0" />
                 <div className="flex flex-col gap-2 flex-grow">
                     <div className="flex items-start justify-between">
                         <Skeleton className="h-7 w-1/3" />
