@@ -25,4 +25,10 @@ export interface PostData extends Identifiable {
     createdAt: number;
     userId: string;
     analytics?: Analytics;
+    graphs?: {
+        [key: string]: {
+            points: { x: number; y: number }[];
+            title: string;
+        };
+    };
 }
