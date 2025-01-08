@@ -10,6 +10,12 @@ export interface Analytics {
     avgWatchTime?: number;
     fullVideoPercentage?: number;
     newFollowers?: number;
+    graphs?: {
+        [key: string]: {
+            points: { x: number; y: number }[];
+            title: string;
+        };
+    };
 }
 
 export interface PostData extends Identifiable {
@@ -25,10 +31,4 @@ export interface PostData extends Identifiable {
     createdAt: number;
     userId: string;
     analytics?: Analytics;
-    graphs?: {
-        [key: string]: {
-            points: { x: number; y: number }[];
-            title: string;
-        };
-    };
 }
