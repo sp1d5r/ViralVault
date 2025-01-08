@@ -134,6 +134,48 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
         }
     };
 
+    const handleGraphUpdate = async (
+        graphType: keyof Analytics['graphs'], 
+        newData: { x: number; y: number }[],
+        title: string
+    ) => {
+        if (!post.id) return;
+
+        try {
+            await FirebaseDatabaseService.updateDocument(
+                'tiktok-posts',
+                post.id,
+                {
+                    analytics: {
+                        ...post.analytics,
+                        graphs: {
+                            ...post.analytics?.graphs,
+                            [graphType]: { points: newData }
+                        }
+                    }
+                },
+                () => {
+                    toast({
+                        title: `${title} updated`,
+                        variant: 'default',
+                    });
+                },
+                (error) => {
+                    toast({
+                        title: `Failed to update ${title.toLowerCase()}: ${error.message}`,
+                        variant: 'destructive',
+                    });
+                }
+            );
+        } catch (error) {
+            console.error(`Error updating ${title.toLowerCase()}:`, error);
+            toast({
+                title: `Something went wrong while updating ${title.toLowerCase()}`,
+                variant: 'destructive',
+            });
+        }
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -410,9 +452,11 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                             xAxisType="hours"
                             maxXValue={24}
                             maxYValue={analytics.views || 100}
-                            onSubmit={(newData) => {
-                                console.log('New data:', newData);
-                            }}
+                            onSubmit={(newData) => handleGraphUpdate(
+                                'viewDistribution',
+                                newData,
+                                'View distribution'
+                            )}
                         />
 
                         <GraphContainer
@@ -422,9 +466,11 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                             borderColor="border-green-500"
                             xAxisType="seconds"
                             maxYValue={100}
-                            onSubmit={(newData) => {
-                                console.log('New data:', newData);
-                            }}
+                            onSubmit={(newData) => handleGraphUpdate(
+                                'retention',
+                                newData,
+                                'Retention data'
+                            )}
                         />
                     </motion.div>
                 )}
