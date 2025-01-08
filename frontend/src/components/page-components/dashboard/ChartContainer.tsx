@@ -28,7 +28,8 @@ interface GraphContainerProps {
     borderColor?: string;
     data?: DataPoint[];
     xAxisType: 'hours' | 'seconds';
-    maxXValue?: number; // Optional now
+    maxXValue?: number;
+    maxYValue?: number;
     onSubmit?: (newData: DataPoint[]) => void;
 }
 
@@ -40,6 +41,7 @@ export const GraphContainer: React.FC<GraphContainerProps> = ({
     data,
     xAxisType,
     maxXValue,
+    maxYValue,
     onSubmit,
 }) => {
     // All hooks must be at the top level
@@ -237,7 +239,7 @@ export const GraphContainer: React.FC<GraphContainerProps> = ({
                                 angle: -90, 
                                 position: 'left' 
                             }}
-                            domain={[0, 100]}
+                            domain={[0, maxYValue || 100]}
                         />
                         <ChartTooltip
                             content={({ active, payload }) => {

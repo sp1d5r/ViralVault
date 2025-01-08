@@ -403,29 +403,29 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                             </div>
                         </div>
                         <GraphContainer
-                                title="24-Hour View Distribution"
-                                xAxisTitle="Hour"
-                                yAxisTitle="Views"
-                                borderColor="border-indigo-500"
-                                xAxisType="hours"
-                                maxXValue={24}
-                                onSubmit={(newData) => {
-                                    // Handle data updates
-                                    console.log('New data:', newData);
-                                }}
-                            />
+                            title="24-Hour View Distribution"
+                            xAxisTitle="Hour"
+                            yAxisTitle="Views"
+                            borderColor="border-indigo-500"
+                            xAxisType="hours"
+                            maxXValue={24}
+                            maxYValue={analytics.views || 100}
+                            onSubmit={(newData) => {
+                                console.log('New data:', newData);
+                            }}
+                        />
 
-                            <GraphContainer
-                                title="Video Retention"
-                                xAxisTitle="Time (seconds)"
-                                yAxisTitle="Viewers (%)"
-                                borderColor="border-green-500"
-                                xAxisType="seconds"
-                                onSubmit={(newData) => {
-                                    // Handle data updates
-                                    console.log('New data:', newData);
-                                }}
-                            />
+                        <GraphContainer
+                            title="Video Retention"
+                            xAxisTitle="Time (seconds)"
+                            yAxisTitle="Viewers (%)"
+                            borderColor="border-green-500"
+                            xAxisType="seconds"
+                            maxYValue={100}
+                            onSubmit={(newData) => {
+                                console.log('New data:', newData);
+                            }}
+                        />
                     </motion.div>
                 )}
 
