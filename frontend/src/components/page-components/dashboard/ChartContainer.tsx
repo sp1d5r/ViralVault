@@ -88,11 +88,11 @@ export const GraphContainer: React.FC<GraphContainerProps> = ({
         }
 
         // Get the actual chart height from the ref
-        const chartHeight = chartRef.current?.clientHeight || 250; // 250 is our default chart height
-        const valueRange = 100;
+        const chartHeight = chartRef.current?.clientHeight || 250;
+        const valueRange = maxYValue || 100;
         
         // Adjust the calculation to use the full range
-        const newY = Math.max(0, Math.min(100, valueRange * (1 - (e.chartY / chartHeight))));
+        const newY = Math.max(0, Math.min(valueRange, valueRange * (1 - (e.chartY / chartHeight))));
 
         console.log('Chart dimensions:', {
             actualHeight: chartHeight,
