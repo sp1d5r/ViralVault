@@ -452,6 +452,7 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                             xAxisType="hours"
                             maxXValue={24}
                             maxYValue={analytics.views || 100}
+                            data={post.analytics?.graphs?.viewDistribution?.points || undefined}
                             onSubmit={(newData) => handleGraphUpdate(
                                 'viewDistribution',
                                 newData,
@@ -466,6 +467,7 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                             borderColor="border-green-500"
                             xAxisType="seconds"
                             maxYValue={100}
+                            data={post.analytics?.graphs?.retention?.points || undefined}
                             onSubmit={(newData) => handleGraphUpdate(
                                 'retention',
                                 newData,
