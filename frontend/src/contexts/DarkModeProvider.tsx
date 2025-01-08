@@ -8,7 +8,6 @@ import React, {
   
   interface DarkModeContextProps {
     darkModeState: DarkModeState;
-    toggleDarkMode: () => void;
   }
   
   const DarkModeContext = createContext<DarkModeContextProps | undefined>(undefined);
@@ -19,31 +18,14 @@ import React, {
   
   // Dark Mode Provider component
   export const DarkModeProvider: React.FC<DarkModeProviderProps> = ({ children }) => {
-    const [darkModeState, setDarkModeState] = useState<DarkModeState>(() => {
-      const storedDarkMode = localStorage.getItem('darkMode');
-      return { darkMode: storedDarkMode === null ? true : storedDarkMode === 'true' };
-    });
+    const [darkModeState] = useState<DarkModeState>({ darkMode: true });
   
     useEffect(() => {
-      const { darkMode } = darkModeState;
-
-      if (darkMode) {
-        document.documentElement.classList.add('dark');
-        localStorage.setItem('darkMode', 'true');
-      } else {
-        document.documentElement.classList.remove('dark');
-        localStorage.setItem('darkMode', 'false');
-      }
-    }, [darkModeState]);
-  
-    const toggleDarkMode = () => setDarkModeState((prevState) => {
-      const newDarkModeState = !prevState.darkMode;
-      return { darkMode: newDarkModeState };
-    });
+      document.documentElement.classList.add('dark');
+    }, []); // Only runs once on mount
   
     const value = useMemo(() => ({
       darkModeState,
-      toggleDarkMode,
     }), [darkModeState]);
   
     return (
