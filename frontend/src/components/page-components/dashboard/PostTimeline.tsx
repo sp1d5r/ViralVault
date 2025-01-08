@@ -138,7 +138,7 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
         <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="flex gap-4 relative px-4 md:px-8 pb-8 group"
+            className="flex gap-4 relative md:px-8 pb-8 group"
         >
             {/* Timeline dot and line - hidden on mobile */}
             <div className="absolute left-0 top-0 h-full hidden md:block">
@@ -536,7 +536,7 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
 };
 
 const PostTimelineSkeleton = () => (
-    <div className="flex gap-4 relative px-4 md:px-8 pb-8">
+    <div className="flex gap-4 relative px-1 md:px-8 pb-8">
         {/* Timeline dot and line - hidden on mobile */}
         <div className="absolute left-0 top-0 h-full hidden md:block">
             <div className="w-4 h-4 rounded-full bg-neutral-800 relative z-10" />
