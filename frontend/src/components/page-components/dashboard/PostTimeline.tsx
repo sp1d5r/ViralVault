@@ -138,7 +138,7 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
         <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="flex gap-4 relative px-0 md:px-8 pb-8 group"
+            className="flex gap-4 relative px-4 md:px-8 pb-8 group"
         >
             {/* Timeline dot and line - hidden on mobile */}
             <div className="absolute left-0 top-0 h-full hidden md:block">
@@ -151,7 +151,7 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                 <div className="bg-neutral-900/50 rounded-lg p-4 hover:bg-neutral-900/70 transition-all">
                     <div className="flex gap-4">
                         <div 
-                            className="w-24 h-24 rounded-lg flex-shrink-0"
+                            className="w-16 h-16 md:w-24 md:h-24 rounded-lg flex-shrink-0"
                             style={{
                                 background: `linear-gradient(135deg, ${gradientColor}, ${stringToColor(post.title + 'alt')})`
                             }}
@@ -546,7 +546,7 @@ const PostTimelineSkeleton = () => (
         {/* Content card */}
         <div className="flex-1 bg-neutral-900/50 rounded-lg p-4">
             <div className="flex gap-4">
-                <Skeleton className="w-24 h-24 rounded-lg flex-shrink-0" />
+                <Skeleton className="w-16 h-16 md:w-24 md:h-24 rounded-lg flex-shrink-0" />
                 <div className="flex flex-col gap-2 flex-grow">
                     <div className="flex items-start justify-between">
                         <Skeleton className="h-7 w-1/3" />
