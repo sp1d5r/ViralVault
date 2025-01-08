@@ -574,7 +574,7 @@ const groupPostsByDay = (posts: PostData[]): Map<string, PostData[]> => {
     
     posts.forEach(post => {
         const date = new Date(post.postDate);
-        const dateKey = date.toDateString(); // Use date string as key
+        const dateKey = date.toDateString();
         
         if (!grouped.has(dateKey)) {
             grouped.set(dateKey, []);
@@ -582,10 +582,12 @@ const groupPostsByDay = (posts: PostData[]): Map<string, PostData[]> => {
         grouped.get(dateKey)?.push(post);
     });
     
-    // Sort the map by date (most recent first)
-    return new Map([...grouped.entries()].sort((a, b) => 
+    // Convert to array, sort, and convert back to Map
+    const sortedEntries = Array.from(grouped.entries()).sort((a, b) => 
         new Date(b[0]).getTime() - new Date(a[0]).getTime()
-    ));
+    );
+    
+    return new Map(sortedEntries);
 };
 
 export const PostTimeline: React.FC = () => {
@@ -675,7 +677,8 @@ export const PostTimeline: React.FC = () => {
         );
     }
 
-    const groupedPosts = groupPostsByDay(posts);
+    // Convert the grouped posts to an array before mapping
+    const groupedPostsArray = Array.from(groupPostsByDay(posts));
 
     return (
         <div className="relative">
@@ -687,7 +690,7 @@ export const PostTimeline: React.FC = () => {
                 </>
             ) : (
                 <motion.div
-                    className="space-y-8" // Increased spacing between groups
+                    className="space-y-8"
                     initial="hidden"
                     animate="visible"
                     variants={{
@@ -698,7 +701,7 @@ export const PostTimeline: React.FC = () => {
                         }
                     }}
                 >
-                    {Array.from(groupedPosts.entries()).map(([dateKey, dayPosts]) => (
+                    {groupedPostsArray.map(([dateKey, dayPosts]) => (
                         <div key={dateKey} className="space-y-4">
                             {/* Date Header */}
                             <h3 className="text-lg font-semibold text-neutral-400 px-4 md:px-8">
