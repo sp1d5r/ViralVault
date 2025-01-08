@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FirebaseDatabaseService } from 'shared';
 import { Skeleton } from '../../shadcn/skeleton';
-import { Edit, ChartBar, FileText, ChevronDown, Share2, Heart, MessageCircle, Play, Star, Clock, Percent, Trash2, Save, UserPlus } from 'lucide-react';
+import { Edit, ChartBar, FileText, Share2, Heart, MessageCircle, Play, Star, Clock, Trash2, Save, UserPlus } from 'lucide-react';
 import { Button } from '../../shadcn/button';
 import { PostData, Analytics } from 'shared';
 import { 
@@ -13,14 +13,15 @@ import {
     DialogHeader,
     DialogTitle,
 } from "../../shadcn/dialog";
-import type { Unsubscribe } from 'firebase/firestore';
 import { toast } from '../../../contexts/ToastProvider';
-import { useAuth } from '../../../contexts/AuthenticationProvider';
 import { Textarea } from "../../shadcn/textarea";
 import { EditPostModal } from './EditPostModal';
 import { parseTimeToSeconds, formatSecondsToTime } from '../../../lib/utils';
 import { Input } from '../../shadcn/input';
 import { GraphContainer } from './ChartContainer';
+
+// Add this type at the top of the file
+type GraphType = keyof NonNullable<Analytics['graphs']>;
 
 // Function to generate a color from string
 const stringToColor = (str: string) => {
@@ -135,7 +136,7 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
     };
 
     const handleGraphUpdate = async (
-        graphType: keyof Analytics['graphs'], 
+        graphType: GraphType,
         newData: { x: number; y: number }[],
         title: string
     ) => {
