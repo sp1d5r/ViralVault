@@ -91,24 +91,25 @@ export const GraphContainer: React.FC<GraphContainerProps> = ({
         const chartHeight = chartRef.current?.clientHeight || 250;
         const valueRange = maxYValue || 100;
         
-        // Adjust the calculation to use the full range
-        const newY = Math.max(0, Math.min(valueRange, valueRange * (1 - (e.chartY / chartHeight))));
-
-        console.log('Chart dimensions:', {
-            actualHeight: chartHeight,
-            mouseY: e.chartY,
-            calculatedValue: newY
-        });
+        // Account for chart padding (approximately 5px top and 5px bottom = 10px total)
+        const effectiveChartHeight = chartHeight - 50;
+        // Adjust mouse position relative to the padding (5px from top)
+        const adjustedChartY = e.chartY - 5;
+        
+        // Adjust the calculation to use the effective height
+        const newY = Math.max(0, Math.min(valueRange, 
+            valueRange * (1 - (adjustedChartY / effectiveChartHeight))
+        ));
 
         setEditableData(prev => {
             const currentY = prev[activePointIndex].y;
-            const roundedNewY = Math.round(newY * 10) / 10;
+            const newValue = Number(newY.toFixed(1));
             
-            if (Math.abs(currentY - roundedNewY) > 0.1) {
+            if (Math.abs(currentY - newValue) > 0.01) {
                 const newData = [...prev];
                 newData[activePointIndex] = {
                     ...newData[activePointIndex],
-                    y: roundedNewY
+                    y: newValue
                 };
                 return newData;
             }
