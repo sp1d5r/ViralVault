@@ -590,57 +590,13 @@ const groupPostsByDay = (posts: PostData[]): Map<string, PostData[]> => {
     return new Map(sortedEntries);
 };
 
-export const PostTimeline: React.FC = () => {
-    const [posts, setPosts] = useState<PostData[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const {authState} = useAuth();
+export interface PostTimelineProps {
+    posts: PostData[];
+    loading: boolean;
+    error?: string;
+}
 
-    useEffect(() => {
-        let unsubscribe: Unsubscribe;
-
-        const setupListener = () => {
-            if (!authState.user?.uid) {
-                setLoading(false);
-                setPosts([]);
-                return;
-            }
-
-            try {
-                unsubscribe = FirebaseDatabaseService.listenToQuery<PostData>(
-                    'tiktok-posts',
-                    'userId',
-                    authState.user.uid,
-                    'createdAt',
-                    (updatedPosts) => {
-                        console.log('updatedPosts', updatedPosts);
-                        if (updatedPosts) {
-                            setPosts(updatedPosts);
-                        }
-                        setLoading(false);
-                    },
-                    (error) => {
-                        console.error('Query error:', error);
-                        setError(error.message);
-                        setLoading(false);
-                    }
-                );
-            } catch (err) {
-                console.error('Setup error:', err);
-                setError('Failed to setup post listener');
-                setLoading(false);
-            }
-        };
-
-        setupListener();
-
-        return () => {
-            if (unsubscribe) {
-                unsubscribe();
-            }
-        };
-    }, [authState.user?.uid]);
-
+export const PostTimeline: React.FC<PostTimelineProps> = ({ posts, loading }) => {
     const handleDelete = async (postId: string) => {
         try {
             await FirebaseDatabaseService.deleteDocument(
@@ -668,15 +624,7 @@ export const PostTimeline: React.FC = () => {
             });
         }
     };
-
-    if (error) {
-        return (
-            <div className="text-red-500 p-4 rounded-lg bg-red-500/10">
-                Error loading posts: {error}
-            </div>
-        );
-    }
-
+    
     // Convert the grouped posts to an array before mapping
     const groupedPostsArray = Array.from(groupPostsByDay(posts));
 

@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "../../shadcn/button";
 import { Plus, Edit, Music, Share2, TrendingUp, Users, Clock, Star } from "lucide-react";
 import { motion } from 'framer-motion';
 import { NewPostModal } from './NewPostModal';
 import { PostTimeline } from './PostTimeline';
+import { useAuth } from '../../../contexts/AuthenticationProvider';
+import { FirebaseDatabaseService, PostData } from 'shared';
+import { Unsubscribe } from 'firebase/firestore';
 
 // Helper function to generate random data for the heatmap
 const generateHeatmapData = () => {
@@ -57,9 +60,120 @@ const AnalyticCard: React.FC<{
     </div>
 );
 
+const calculateAnalytics = (posts: PostData[]) => {
+    if (!posts?.length) return {
+        totalViews: 0,
+        totalFollowers: 0,
+        avgWatchTime: "0:00",
+        engagementRate: 0,
+        changes: {
+            views: 0,
+            followers: 0,
+            watchTime: 0,
+            engagement: 0
+        }
+    };
+
+    // Sort posts by date for getting latest post metrics
+    const sortedPosts = [...posts].sort((a, b) => 
+        new Date(b.postDate).getTime() - new Date(a.postDate).getTime()
+    );
+
+    // Calculate totals
+    const totalViews = posts.reduce((sum, post) => sum + (post.analytics?.views || 0), 0);
+    const totalFollowers = posts.reduce((sum, post) => sum + (post.analytics?.newFollowers || 0), 0);
+    
+    // Calculate average watch time
+    const totalWatchTime = posts.reduce((sum, post) => sum + (post.analytics?.avgWatchTime || 0), 0);
+    const avgWatchTimeSeconds = Math.floor(totalWatchTime / posts.length);
+    const avgWatchTime = `${Math.floor(avgWatchTimeSeconds / 60)}:${String(avgWatchTimeSeconds % 60).padStart(2, '0')}`;
+
+    // Calculate overall engagement rate
+    const totalEngagements = posts.reduce((sum, post) => {
+        const analytics = post.analytics || {};
+        return sum + (
+            (analytics.likes || 0) + 
+            (analytics.comments || 0) + 
+            (analytics.shares || 0) + 
+            (analytics.favorites || 0)
+        );
+    }, 0);
+    const engagementRate = totalViews ? Number(((totalEngagements / totalViews) * 100).toFixed(1)) : 0;
+
+    // Get latest post for change metrics
+    const latestPost = sortedPosts[0];
+    const changes = {
+        views: latestPost?.analytics?.views || 0,
+        followers: latestPost?.analytics?.newFollowers || 0,
+        watchTime: latestPost?.analytics?.avgWatchTime || 0,
+        engagement: latestPost?.analytics ? 
+            Number(((
+                (latestPost.analytics.likes || 0) + 
+                (latestPost.analytics.comments || 0) + 
+                (latestPost.analytics.shares || 0) + 
+                (latestPost.analytics.favorites || 0)
+            ) / (latestPost.analytics.views || 1) * 100).toFixed(1)) : 0
+    };
+
+    return {
+        totalViews,
+        totalFollowers,
+        avgWatchTime,
+        engagementRate,
+        changes
+    };
+};
+
 export const DashboardMain: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const heatmapData = generateHeatmapData();
+    const [posts, setPosts] = useState<PostData[]>([]);
+    const [loading, setLoading] = useState(true);
+    const {authState} = useAuth();
+
+    useEffect(() => {
+        let unsubscribe: Unsubscribe;
+
+        const setupListener = () => {
+            if (!authState.user?.uid) {
+                setLoading(false);
+                setPosts([]);
+                return;
+            }
+
+            try {
+                unsubscribe = FirebaseDatabaseService.listenToQuery<PostData>(
+                    'tiktok-posts',
+                    'userId',
+                    authState.user.uid,
+                    'createdAt',
+                    (updatedPosts) => {
+                        if (updatedPosts) {
+                            setPosts(updatedPosts);
+                        }
+                        setLoading(false);
+                    },
+                    (error) => {
+                        console.error('Query error:', error);
+                        setLoading(false);
+                    }
+                );
+            } catch (err) {
+                console.error('Setup error:', err);
+                setLoading(false);
+            }
+        };
+
+        setupListener();
+
+        return () => {
+            if (unsubscribe) {
+                unsubscribe();
+            }
+        };
+    }, [authState.user?.uid]);
+
+    const analytics = calculateAnalytics(posts);
 
     return (
         <div className="space-y-6">
@@ -86,26 +200,26 @@ export const DashboardMain: React.FC = () => {
                         <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
                             <AnalyticCard
                                 title="Total Views"
-                                value="124.8k"
-                                change="+12.3"
+                                value={analytics.totalViews.toLocaleString()}
+                                change={analytics.changes.views.toString()}
                                 icon={<TrendingUp className="text-indigo-400" />}
                             />
                             <AnalyticCard
                                 title="Total Followers"
-                                value="1,234"
-                                change="+5.2"
+                                value={analytics.totalFollowers.toLocaleString()}
+                                change={analytics.changes.followers.toString()}
                                 icon={<Users className="text-indigo-400" />}
                             />
                             <AnalyticCard
                                 title="Avg Watch Time"
-                                value="2:31"
-                                change="-1.5"
+                                value={analytics.avgWatchTime}
+                                change={analytics.changes.watchTime.toString()}
                                 icon={<Clock className="text-indigo-400" />}
                             />
                             <AnalyticCard
                                 title="Engagement Rate"
-                                value="4.6%"
-                                change="+0.8"
+                                value={`${analytics.engagementRate}%`}
+                                change={analytics.changes.engagement.toFixed(1)}
                                 icon={<Star className="text-indigo-400" />}
                             />
                         </div>
@@ -145,7 +259,7 @@ export const DashboardMain: React.FC = () => {
 
                         <div>
                             <h2 className="text-2xl font-bold mb-4">Your Posts</h2>
-                            <PostTimeline />
+                            <PostTimeline posts={posts} loading={loading} />
                         </div>
                     </div>
                 </div>
