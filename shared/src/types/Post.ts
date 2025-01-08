@@ -11,10 +11,9 @@ export interface Analytics {
     fullVideoPercentage?: number;
     newFollowers?: number;
     graphs?: {
-        [key: string]: {
-            points: { x: number; y: number }[];
-            title: string;
-        };
+        viewDistribution: { points: { x: number; y: number }[] };
+        retention: { points: { x: number; y: number }[] };
+        engagementOverTime: { points: { x: number; y: number }[] };
     };
 }
 
