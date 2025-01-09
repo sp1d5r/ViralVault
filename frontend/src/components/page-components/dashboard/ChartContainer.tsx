@@ -142,21 +142,41 @@ export const GraphContainer: React.FC<GraphContainerProps> = ({
     const interpolatePoints = (data: DataPoint[]): DataPoint[] => {
         const result = [...data];
         
-        // If the last point is 0, we need to find the last non-zero value
-        let finalValue = result[result.length - 1].y;
-        if (finalValue === 0) {
-            for (let i = result.length - 2; i >= 0; i--) {
-                if (result[i].y !== 0) {
-                    finalValue = result[i].y;
-                    break;
+        // Find segments between non-zero points and interpolate
+        let lastNonZeroIndex = 0;
+        let lastNonZeroValue = result[0].y;
+
+        for (let i = 1; i < result.length; i++) {
+            if (result[i].y !== 0) {
+                // Found next non-zero point, interpolate between lastNonZero and here
+                const startValue = lastNonZeroValue;
+                const endValue = result[i].y;
+                const gap = i - lastNonZeroIndex;
+                
+                // Fill in all points between last non-zero and current
+                for (let j = 1; j < gap; j++) {
+                    const fraction = j / gap;
+                    result[lastNonZeroIndex + j].y = Number(
+                        (startValue + (endValue - startValue) * fraction).toFixed(1)
+                    );
                 }
+                
+                lastNonZeroIndex = i;
+                lastNonZeroValue = endValue;
             }
         }
 
-        // Now interpolate all zero points, including the last point if it was zero
-        for (let i = 0; i < result.length; i++) {
-            if (result[i].y === 0) {
-                result[i].y = Number(finalValue.toFixed(1));
+        // Handle trailing zeros if they exist
+        if (lastNonZeroIndex < result.length - 1) {
+            const gap = result.length - lastNonZeroIndex;
+            const startValue = lastNonZeroValue;
+            
+            // Fill in remaining points, going down to zero
+            for (let i = 1; i < gap; i++) {
+                const fraction = i / gap;
+                result[lastNonZeroIndex + i].y = Number(
+                    (startValue * (1 - fraction)).toFixed(1)
+                );
             }
         }
 
