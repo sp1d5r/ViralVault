@@ -194,34 +194,36 @@ export const DashboardMain: React.FC = () => {
             {/* Main content area */}
             <div className="flex flex-col lg:flex-row gap-6">
                 {/* Analytics Panel */}
-                <div className="order-1 lg:order-2 w-full lg:w-80 space-y-4">
-                    <div className="bg-neutral-900/50 rounded-lg p-4">
-                        <h2 className="text-lg font-semibold mb-4 text-white">Overall Analytics</h2>
-                        <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
-                            <AnalyticCard
-                                title="Total Views"
-                                value={analytics.totalViews.toLocaleString()}
-                                change={analytics.changes.views.toString()}
-                                icon={<TrendingUp className="text-indigo-400" />}
-                            />
-                            <AnalyticCard
-                                title="Total Followers"
-                                value={analytics.totalFollowers.toLocaleString()}
-                                change={analytics.changes.followers.toString()}
-                                icon={<Users className="text-indigo-400" />}
-                            />
-                            <AnalyticCard
-                                title="Avg Watch Time"
-                                value={analytics.avgWatchTime}
-                                change={analytics.changes.watchTime.toString()}
-                                icon={<Clock className="text-indigo-400" />}
-                            />
-                            <AnalyticCard
-                                title="Engagement Rate"
-                                value={`${analytics.engagementRate}%`}
-                                change={analytics.changes.engagement.toFixed(1)}
-                                icon={<Star className="text-indigo-400" />}
-                            />
+                <div className="order-1 lg:order-2 w-full lg:w-80">
+                    <div className="space-y-4 lg:sticky lg:top-4">
+                        <div className="bg-neutral-900/50 rounded-lg p-4">
+                            <h2 className="text-lg font-semibold mb-4 text-white">Overall Analytics</h2>
+                            <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
+                                <AnalyticCard
+                                    title="Total Views"
+                                    value={analytics.totalViews.toLocaleString()}
+                                    change={analytics.changes.views.toString()}
+                                    icon={<TrendingUp className="text-indigo-400" />}
+                                />
+                                <AnalyticCard
+                                    title="Total Followers"
+                                    value={analytics.totalFollowers.toLocaleString()}
+                                    change={analytics.changes.followers.toString()}
+                                    icon={<Users className="text-indigo-400" />}
+                                />
+                                <AnalyticCard
+                                    title="Avg Watch Time"
+                                    value={analytics.avgWatchTime}
+                                    change={analytics.changes.watchTime.toString()}
+                                    icon={<Clock className="text-indigo-400" />}
+                                />
+                                <AnalyticCard
+                                    title="Engagement Rate"
+                                    value={`${analytics.engagementRate}%`}
+                                    change={analytics.changes.engagement.toFixed(1)}
+                                    icon={<Star className="text-indigo-400" />}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
