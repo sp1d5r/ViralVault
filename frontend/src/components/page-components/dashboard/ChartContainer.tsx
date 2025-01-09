@@ -140,44 +140,31 @@ export const GraphContainer: React.FC<GraphContainerProps> = ({
     };
 
     const interpolatePoints = (data: DataPoint[]): DataPoint[] => {
-        if (!interpolate) return data;
-        
         const result = [...data];
-        let lastNonZeroIndex = -1;
-    
-        // First, find the rightmost non-zero point
-        for (let i = result.length - 1; i >= 0; i--) {
-            if (result[i].y !== 0) {
-                lastNonZeroIndex = i;
-                break;
+        
+        // If the last point is 0, we need to find the last non-zero value
+        let finalValue = result[result.length - 1].y;
+        if (finalValue === 0) {
+            for (let i = result.length - 2; i >= 0; i--) {
+                if (result[i].y !== 0) {
+                    finalValue = result[i].y;
+                    break;
+                }
             }
         }
-    
-        // If no non-zero points found, return original data
-        if (lastNonZeroIndex === -1) return data;
-    
-        // Working backwards from the rightmost non-zero point
-        let currentNonZeroValue = result[lastNonZeroIndex].y;
-        let currentNonZeroX = result[lastNonZeroIndex].x;
-    
-        for (let i = lastNonZeroIndex - 1; i >= 0; i--) {
-            if (result[i].y !== 0) {
-                // Found another non-zero point
-                currentNonZeroValue = result[i].y;
-                currentNonZeroX = result[i].x;
-            } else {
-                // Interpolate from the last known non-zero point
-                const pointsToInterpolate = currentNonZeroX - result[i].x;
-                const valueStep = currentNonZeroValue / pointsToInterpolate;
-                
-                result[i].y = Number((currentNonZeroValue - (valueStep * (currentNonZeroX - result[i].x))).toFixed(1));
+
+        // Now interpolate all zero points, including the last point if it was zero
+        for (let i = 0; i < result.length; i++) {
+            if (result[i].y === 0) {
+                result[i].y = Number(finalValue.toFixed(1));
             }
         }
-    
+
         return result;
     };
 
     const handleSubmit = () => {
+        // Apply interpolation before submitting if enabled
         const finalData = interpolate ? interpolatePoints(editableData) : editableData;
         onSubmit?.(finalData);
         setIsEditing(false);
