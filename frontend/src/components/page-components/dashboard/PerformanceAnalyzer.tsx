@@ -18,9 +18,9 @@ export const PerformanceAnalyzer: React.FC<PerformanceAnalyzerProps> = ({ posts 
         includeAnalytics: false,
         postHistory: 5,
         analyticsTypes: {
-            retention: true,
-            views: true,
-            engagement: true,
+            retention: false,
+            views: false,
+            engagement: false,
             watchTime: false
         }
     });
@@ -93,7 +93,7 @@ export const PerformanceAnalyzer: React.FC<PerformanceAnalyzerProps> = ({ posts 
 
     return (
         <div>
-            <h3 className="text-lg font-semibold mb-4">AI Performance Analysis</h3>
+            <h3 className="text-lg font-semibold mb-4">AI Assistant</h3>
             
             {/* Context Settings - Now more compact */}
             <div className="mb-4 space-y-2">
@@ -196,7 +196,7 @@ export const PerformanceAnalyzer: React.FC<PerformanceAnalyzerProps> = ({ posts 
             {/* Query Input */}
             <div className="space-y-2">
                 <Textarea
-                    placeholder="Ask about your content performance..."
+                    placeholder="Ask about performance, script ideas, etc..."
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     className="bg-neutral-800/50"
