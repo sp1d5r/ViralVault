@@ -121,12 +121,12 @@ const Dashboard: React.FC = () => {
 
 const Logo = () => (
   <div className="font-normal flex -space-x-[0.5rem] items-center text-sm text-gray-200 py-1 relative z-20">
-    <div className="h-6 w-6 bg-indigo-500 rounded-br-lg rounded-tr-sm rounded-tl-lg rounded-bl-sm flex-shrink-0" />
-    <div className="h-6 w-6 bg-blue-500 rounded-br-lg rounded-tr-sm rounded-tl-lg rounded-bl-sm flex-shrink-0" />
+    <p className="text-2xl font-bold text-indigo-500">V</p>
+    <p className="text-2xl font-bold text-blue-500">V</p>
     <motion.span
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="font-medium whitespace-pre ml-3 bg-gradient-to-r from-indigo-500 via-blue-500 to-violet-500 bg-clip-text text-transparent"
+      className="font-medium pl-2 whitespace-pre ml-3 bg-gradient-to-r from-indigo-500 via-blue-500 to-violet-500 bg-clip-text text-transparent"
     >
       ViralVault
     </motion.span>
