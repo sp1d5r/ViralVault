@@ -40,7 +40,10 @@ const TopPerformingPosts: React.FC<{ posts: PostData[] }> = ({ posts }) => {
                 className="flex items-center justify-between cursor-pointer lg:cursor-default mb-4"
                 onClick={() => setIsExpanded(!isExpanded)}
             >
-                <h2 className="text-lg font-semibold">Top 5 Recent Posts</h2>
+                <div className="flex flex-col">
+                    <h2 className="text-lg font-semibold">Ranked Posts</h2>
+                    <p className="text-xs text-neutral-400">Using your last 10 posts</p>
+                </div>
                 <ChevronDown className={`lg:hidden transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
             </div>
             <div className={`${isExpanded ? 'block' : 'hidden'} lg:block space-y-3`}>
