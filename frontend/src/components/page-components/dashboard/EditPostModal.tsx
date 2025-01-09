@@ -369,6 +369,21 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({ isOpen, onClose, p
                                     variant="minimal"
                                 />
                             </div>
+
+                            <div className="space-y-2">
+                                <Label>Video Duration (seconds)</Label>
+                                <Input
+                                    type="number"
+                                    min="1"
+                                    step="1"
+                                    value={formData.duration || 0}
+                                    onChange={(e) => setFormData(prev => ({
+                                        ...prev,
+                                        duration: parseInt(e.target.value) || 0
+                                    }))}
+                                    variant="minimal"
+                                />
+                            </div>
                         </div>
 
                         <div className="mt-8">

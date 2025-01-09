@@ -29,5 +29,6 @@ export interface PostData extends Identifiable {
     tags: string[];
     createdAt: number;
     userId: string;
+    duration?: number;
     analytics?: Analytics;
 }

@@ -476,14 +476,15 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                             yAxisTitle="Viewers (%)"
                             borderColor="border-green-500"
                             xAxisType="seconds"
+                            maxXValue={post.duration || 60}
                             maxYValue={100}
-                            data={post.analytics?.graphs?.retention?.points || undefined}
+                            interpolate={true}
+                            data={post.analytics?.graphs?.retention?.points}
                             onSubmit={(newData) => handleGraphUpdate(
                                 'retention',
                                 newData,
                                 'Retention data'
                             )}
-                            interpolate={true}
                         />
                     </motion.div>
                 )}
