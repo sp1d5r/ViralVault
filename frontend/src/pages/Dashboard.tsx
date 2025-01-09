@@ -154,16 +154,6 @@ const sidebarLinks = [
     id: "profile",
     label: "Profile",
     icon: <IconUser className="h-5 w-5 flex-shrink-0" />
-},
-{
-    id: "settings",
-    label: "Settings",
-    icon: <IconSettings className="h-5 w-5 flex-shrink-0" />
-},
-{
-    id: "logout",
-    label: "Logout",
-    icon: <IconLogout className="h-5 w-5 flex-shrink-0" />
 }
 ];
 
