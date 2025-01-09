@@ -31,6 +31,7 @@ interface GraphContainerProps {
     maxXValue?: number;
     maxYValue?: number;
     onSubmit?: (newData: DataPoint[]) => void;
+    interpolate?: boolean;
 }
 
 export const GraphContainer: React.FC<GraphContainerProps> = ({
@@ -43,7 +44,9 @@ export const GraphContainer: React.FC<GraphContainerProps> = ({
     maxXValue,
     maxYValue,
     onSubmit,
+    interpolate = false,
 }) => {
+
     // All hooks must be at the top level
     const [isEditing, setIsEditing] = useState(false);
     const [editableData, setEditableData] = useState<DataPoint[]>(data || []);
@@ -136,8 +139,47 @@ export const GraphContainer: React.FC<GraphContainerProps> = ({
         setIsEditing(true);
     };
 
+    const interpolatePoints = (data: DataPoint[]): DataPoint[] => {
+        if (!interpolate) return data;
+        
+        const result = [...data];
+        let lastNonZeroIndex = -1;
+    
+        // First, find the rightmost non-zero point
+        for (let i = result.length - 1; i >= 0; i--) {
+            if (result[i].y !== 0) {
+                lastNonZeroIndex = i;
+                break;
+            }
+        }
+    
+        // If no non-zero points found, return original data
+        if (lastNonZeroIndex === -1) return data;
+    
+        // Working backwards from the rightmost non-zero point
+        let currentNonZeroValue = result[lastNonZeroIndex].y;
+        let currentNonZeroX = result[lastNonZeroIndex].x;
+    
+        for (let i = lastNonZeroIndex - 1; i >= 0; i--) {
+            if (result[i].y !== 0) {
+                // Found another non-zero point
+                currentNonZeroValue = result[i].y;
+                currentNonZeroX = result[i].x;
+            } else {
+                // Interpolate from the last known non-zero point
+                const pointsToInterpolate = currentNonZeroX - result[i].x;
+                const valueStep = currentNonZeroValue / pointsToInterpolate;
+                
+                result[i].y = Number((currentNonZeroValue - (valueStep * (currentNonZeroX - result[i].x))).toFixed(1));
+            }
+        }
+    
+        return result;
+    };
+
     const handleSubmit = () => {
-        onSubmit?.(editableData);
+        const finalData = interpolate ? interpolatePoints(editableData) : editableData;
+        onSubmit?.(finalData);
         setIsEditing(false);
     };
 

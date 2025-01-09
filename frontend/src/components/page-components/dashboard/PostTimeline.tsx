@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FirebaseDatabaseService } from 'shared';
 import { Skeleton } from '../../shadcn/skeleton';
@@ -56,6 +56,14 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
     });
     const [showEditModal, setShowEditModal] = useState(false);
     
+    useEffect(() => {
+        console.log('Post Analytics Data:', {
+            hasGraphs: !!post.analytics?.graphs,
+            retentionPoints: post.analytics?.graphs?.retention?.points,
+            viewDistPoints: post.analytics?.graphs?.viewDistribution?.points
+        });
+    }, [post.analytics]);
+
     const handleDelete = () => {
         if (post.id) {
             onDelete(post.id);
@@ -459,6 +467,7 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                                 newData,
                                 'View distribution'
                             )}
+                            interpolate={true}
                         />
 
                         <GraphContainer
@@ -474,6 +483,7 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                                 newData,
                                 'Retention data'
                             )}
+                            interpolate={true}
                         />
                     </motion.div>
                 )}
