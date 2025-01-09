@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "../../shadcn/button";
-import { Plus, Edit, Music, Share2, TrendingUp, Users, Clock, Star } from "lucide-react";
+import { Plus, TrendingUp, Users, Clock, Star } from "lucide-react";
 import { motion } from 'framer-motion';
 import { NewPostModal } from './NewPostModal';
 import { PostTimeline } from './PostTimeline';
 import { useAuth } from '../../../contexts/AuthenticationProvider';
 import { FirebaseDatabaseService, PostData } from 'shared';
 import { Unsubscribe } from 'firebase/firestore';
+import { PerformanceAnalyzer } from './PerformanceAnalyzer';
 
 // Helper function to generate realistic heatmap data
 const generateHeatmapData = (posts: PostData[]) => {
@@ -251,39 +252,46 @@ export const DashboardMain: React.FC = () => {
                     <div className="space-y-6">
                         {/* Heatmap and Timeline sections */}
                         <div className="bg-neutral-900/50 rounded-lg p-4 sm:p-6">
-                            <h2 className="text-lg font-semibold mb-4">Content Activity</h2>
-                            <div className="overflow-x-auto pb-2">
-                                <div className="flex gap-[3px] min-w-[750px]">
-                                    {heatmapData.map((week, weekIndex) => (
-                                        <div key={weekIndex} className="flex flex-col gap-[3px]">
-                                            {week.map((day, dayIndex) => (
-                                                <motion.div
-                                                    key={`${weekIndex}-${dayIndex}`}
-                                                    className={`w-[10px] h-[10px] rounded-sm transition-colors`}
-                                                    style={{
-                                                        backgroundColor: day.value === 0 
-                                                            ? 'rgba(99, 102, 241, 0.1)' 
-                                                            : `rgba(99, 102, 241, ${0.2 + (day.value * 0.2)})`
-                                                    }}
-                                                    whileHover={{ scale: 1.2 }}
-                                                    title={`${day.date.toLocaleDateString()}: ${day.value} posts`}
-                                                />
+                            <div className="flex flex-col lg:flex-row gap-6">
+                                <div className="flex-1">
+                                    <h2 className="text-lg font-semibold mb-4">Content Activity</h2>
+                                    <div className="overflow-x-auto pb-2">
+                                        <div className="flex gap-[3px] min-w-[750px]">
+                                            {heatmapData.map((week, weekIndex) => (
+                                                <div key={weekIndex} className="flex flex-col gap-[3px]">
+                                                    {week.map((day, dayIndex) => (
+                                                        <motion.div
+                                                            key={`${weekIndex}-${dayIndex}`}
+                                                            className={`w-[10px] h-[10px] rounded-sm transition-colors`}
+                                                            style={{
+                                                                backgroundColor: day.value === 0 
+                                                                    ? 'rgba(99, 102, 241, 0.1)' 
+                                                                    : `rgba(99, 102, 241, ${0.2 + (day.value * 0.2)})`
+                                                            }}
+                                                            whileHover={{ scale: 1.2 }}
+                                                            title={`${day.date.toLocaleDateString()}: ${day.value} posts`}
+                                                        />
+                                                    ))}
+                                                </div>
                                             ))}
                                         </div>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="flex items-center justify-between mt-2 text-xs text-neutral-400">
-                                <div className="flex gap-2">
-                                    <span>Less</span>
-                                    <div className="flex gap-1">
-                                        <div className="w-[10px] h-[10px] rounded-sm bg-indigo-500/10" />
-                                        <div className="w-[10px] h-[10px] rounded-sm bg-indigo-500/30" />
-                                        <div className="w-[10px] h-[10px] rounded-sm bg-indigo-500/50" />
-                                        <div className="w-[10px] h-[10px] rounded-sm bg-indigo-500/70" />
-                                        <div className="w-[10px] h-[10px] rounded-sm bg-indigo-500/90" />
                                     </div>
-                                    <span>More</span>
+                                    <div className="flex items-center justify-between mt-2 text-xs text-neutral-400">
+                                        <div className="flex gap-2">
+                                            <span>Less</span>
+                                            <div className="flex gap-1">
+                                                <div className="w-[10px] h-[10px] rounded-sm bg-indigo-500/10" />
+                                                <div className="w-[10px] h-[10px] rounded-sm bg-indigo-500/30" />
+                                                <div className="w-[10px] h-[10px] rounded-sm bg-indigo-500/50" />
+                                                <div className="w-[10px] h-[10px] rounded-sm bg-indigo-500/70" />
+                                                <div className="w-[10px] h-[10px] rounded-sm bg-indigo-500/90" />
+                                            </div>
+                                            <span>More</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="lg:w-96">
+                                    <PerformanceAnalyzer posts={posts} />
                                 </div>
                             </div>
                         </div>
