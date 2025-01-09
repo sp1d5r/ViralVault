@@ -15,7 +15,7 @@ export const PerformanceAnalyzer: React.FC<PerformanceAnalyzerProps> = ({ posts 
     const [isLoading, setIsLoading] = useState(false);
     const [contextSettings, setContextSettings] = useState({
         includeScripts: false,
-        includeAnalytics: true,
+        includeAnalytics: false,
         postHistory: 5,
         analyticsTypes: {
             retention: true,
@@ -92,31 +92,47 @@ export const PerformanceAnalyzer: React.FC<PerformanceAnalyzerProps> = ({ posts 
     };
 
     return (
-        <div className="bg-neutral-900/50 rounded-lg p-4">
+        <div>
             <h3 className="text-lg font-semibold mb-4">AI Performance Analysis</h3>
             
-            {/* Context Settings */}
-            <div className="mb-4 space-y-3">
-                <div className="flex items-center gap-2">
-                    <Checkbox 
-                        checked={contextSettings.includeScripts}
-                        onCheckedChange={(checked) => 
-                            setContextSettings(prev => ({...prev, includeScripts: !!checked}))}
-                    />
-                    <label className="text-sm">Include video scripts</label>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                    <Checkbox 
-                        checked={contextSettings.includeAnalytics}
-                        onCheckedChange={(checked) => 
-                            setContextSettings(prev => ({...prev, includeAnalytics: !!checked}))}
-                    />
-                    <label className="text-sm">Include analytics</label>
+            {/* Context Settings - Now more compact */}
+            <div className="mb-4 space-y-2">
+                <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
+                    <div className="flex items-center gap-2">
+                        <Checkbox 
+                            checked={contextSettings.includeScripts}
+                            onCheckedChange={(checked) => 
+                                setContextSettings(prev => ({...prev, includeScripts: !!checked}))}
+                        />
+                        <label>Scripts</label>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                        <Checkbox 
+                            checked={contextSettings.includeAnalytics}
+                            onCheckedChange={(checked) => 
+                                setContextSettings(prev => ({...prev, includeAnalytics: !!checked}))}
+                        />
+                        <label>Analytics</label>
+                    </div>
+
+                    <select 
+                        className="bg-neutral-800/50 rounded px-2 py-1"
+                        value={contextSettings.postHistory}
+                        onChange={(e) => setContextSettings(prev => ({
+                            ...prev, 
+                            postHistory: Number(e.target.value)
+                        }))}
+                    >
+                        <option value={3}>3 posts</option>
+                        <option value={5}>5 posts</option>
+                        <option value={10}>10 posts</option>
+                        <option value={20}>20 posts</option>
+                    </select>
                 </div>
 
                 {contextSettings.includeAnalytics && (
-                    <div className="ml-6 space-y-2">
+                    <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
                         <div className="flex items-center gap-2">
                             <Checkbox 
                                 checked={contextSettings.analyticsTypes.retention}
@@ -129,7 +145,7 @@ export const PerformanceAnalyzer: React.FC<PerformanceAnalyzerProps> = ({ posts 
                                         }
                                     }))}
                             />
-                            <label className="text-sm">Retention data</label>
+                            <label>Retention</label>
                         </div>
                         <div className="flex items-center gap-2">
                             <Checkbox 
@@ -143,7 +159,7 @@ export const PerformanceAnalyzer: React.FC<PerformanceAnalyzerProps> = ({ posts 
                                         }
                                     }))}
                             />
-                            <label className="text-sm">View metrics</label>
+                            <label>Views</label>
                         </div>
                         <div className="flex items-center gap-2">
                             <Checkbox 
@@ -157,7 +173,7 @@ export const PerformanceAnalyzer: React.FC<PerformanceAnalyzerProps> = ({ posts 
                                         }
                                     }))}
                             />
-                            <label className="text-sm">Engagement metrics</label>
+                            <label>Engagement</label>
                         </div>
                         <div className="flex items-center gap-2">
                             <Checkbox 
@@ -171,27 +187,10 @@ export const PerformanceAnalyzer: React.FC<PerformanceAnalyzerProps> = ({ posts 
                                         }
                                     }))}
                             />
-                            <label className="text-sm">Watch time data</label>
+                            <label>Watch time</label>
                         </div>
                     </div>
                 )}
-
-                <div className="flex items-center gap-2">
-                    <select 
-                        className="bg-neutral-800/50 rounded px-2 py-1 text-sm"
-                        value={contextSettings.postHistory}
-                        onChange={(e) => setContextSettings(prev => ({
-                            ...prev, 
-                            postHistory: Number(e.target.value)
-                        }))}
-                    >
-                        <option value={3}>Last 3 posts</option>
-                        <option value={5}>Last 5 posts</option>
-                        <option value={10}>Last 10 posts</option>
-                        <option value={20}>Last 20 posts</option>
-                    </select>
-                    <label className="text-sm">Context history</label>
-                </div>
             </div>
 
             {/* Query Input */}
@@ -200,7 +199,8 @@ export const PerformanceAnalyzer: React.FC<PerformanceAnalyzerProps> = ({ posts 
                     placeholder="Ask about your content performance..."
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    className="min-h-[80px] bg-neutral-800/50"
+                    className="bg-neutral-800/50"
+                    rows={1}
                 />
                 <Button 
                     className="w-full bg-indigo-500 hover:bg-indigo-600"
