@@ -35,7 +35,7 @@ const TopPerformingPosts: React.FC<{ posts: PostData[] }> = ({ posts }) => {
         .slice(0, 5);
 
     return (
-        <div className="bg-neutral-900/50 rounded-lg p-4">
+        <div className="bg-neutral-900/50 rounded-lg p-4 text-white">
             <div 
                 className="flex items-center justify-between cursor-pointer lg:cursor-default mb-4"
                 onClick={() => setIsExpanded(!isExpanded)}
