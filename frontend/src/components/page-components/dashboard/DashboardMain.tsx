@@ -8,26 +8,34 @@ import { useAuth } from '../../../contexts/AuthenticationProvider';
 import { FirebaseDatabaseService, PostData } from 'shared';
 import { Unsubscribe } from 'firebase/firestore';
 
-// Helper function to generate random data for the heatmap
+// Helper function to generate realistic heatmap data
 const generateHeatmapData = () => {
     const weeks = 52;
     const daysPerWeek = 7;
     const data = [];
     
-    // Start from the beginning of the current week
-    const now = new Date();
-    const currentDay = now.getDay();
-    const startDate = new Date(now);
-    startDate.setDate(now.getDate() - currentDay - (weeks * 7));
+    // Start from one year ago
+    const today = new Date();
+    const startDate = new Date(today);
+    startDate.setFullYear(today.getFullYear() - 1);
+    startDate.setHours(0, 0, 0, 0);
+    
+    // Align to the start of the week (Sunday)
+    const daysSinceStartOfWeek = startDate.getDay();
+    startDate.setDate(startDate.getDate() - daysSinceStartOfWeek);
 
     for (let week = 0; week < weeks; week++) {
         const weekData = [];
         for (let day = 0; day < daysPerWeek; day++) {
             const date = new Date(startDate);
             date.setDate(startDate.getDate() + (week * 7) + day);
+            
+            // Don't show future dates
+            const value = date > today ? 0 : Math.floor(Math.random() * 5);
+            
             weekData.push({
                 date,
-                value: Math.floor(Math.random() * 5) // 0-4 posts per day
+                value
             });
         }
         data.push(weekData);
@@ -232,30 +240,41 @@ export const DashboardMain: React.FC = () => {
                 <div className="order-2 lg:order-1 flex-1 h-full dark:text-white">
                     <div className="space-y-6">
                         {/* Heatmap and Timeline sections */}
-                        <div className="bg-neutral-900/50 rounded-lg p-0 md:p-4 sm:p-6">
+                        <div className="bg-neutral-900/50 rounded-lg p-4 sm:p-6">
                             <h2 className="text-lg font-semibold mb-4">Content Activity</h2>
                             <div className="overflow-x-auto pb-2">
-                                <div className="flex gap-1 min-w-[750px]">
+                                <div className="flex gap-[3px] min-w-[750px]">
                                     {heatmapData.map((week, weekIndex) => (
-                                        <div key={weekIndex} className="flex flex-col gap-1">
+                                        <div key={weekIndex} className="flex flex-col gap-[3px]">
                                             {week.map((day, dayIndex) => (
-                                                <div
+                                                <motion.div
                                                     key={`${weekIndex}-${dayIndex}`}
-                                                    className={`w-3 h-3 rounded-sm transition-colors`}
+                                                    className={`w-[10px] h-[10px] rounded-sm transition-colors`}
                                                     style={{
-                                                        backgroundColor: `rgba(99, 102, 241, ${day.value * 0.25})`
+                                                        backgroundColor: day.value === 0 
+                                                            ? 'rgba(99, 102, 241, 0.1)' 
+                                                            : `rgba(99, 102, 241, ${0.2 + (day.value * 0.2)})`
                                                     }}
-                                                    title={`${day.date.toDateString()}: ${day.value} posts`}
+                                                    whileHover={{ scale: 1.2 }}
+                                                    title={`${day.date.toLocaleDateString()}: ${day.value} posts`}
                                                 />
                                             ))}
                                         </div>
                                     ))}
                                 </div>
                             </div>
-                            <div className="flex gap-1 mt-2 text-xs text-neutral-400">
-                                <div className="w-8">Mon</div>
-                                <div className="w-8">Wed</div>
-                                <div className="w-8">Fri</div>
+                            <div className="flex items-center justify-between mt-2 text-xs text-neutral-400">
+                                <div className="flex gap-2">
+                                    <span>Less</span>
+                                    <div className="flex gap-1">
+                                        <div className="w-[10px] h-[10px] rounded-sm bg-indigo-500/10" />
+                                        <div className="w-[10px] h-[10px] rounded-sm bg-indigo-500/30" />
+                                        <div className="w-[10px] h-[10px] rounded-sm bg-indigo-500/50" />
+                                        <div className="w-[10px] h-[10px] rounded-sm bg-indigo-500/70" />
+                                        <div className="w-[10px] h-[10px] rounded-sm bg-indigo-500/90" />
+                                    </div>
+                                    <span>More</span>
+                                </div>
                             </div>
                         </div>
 
