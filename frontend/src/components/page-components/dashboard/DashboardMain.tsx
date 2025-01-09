@@ -8,6 +8,7 @@ import { useAuth } from '../../../contexts/AuthenticationProvider';
 import { FirebaseDatabaseService, PostData } from 'shared';
 import { Unsubscribe } from 'firebase/firestore';
 import { PerformanceAnalyzer } from './PerformanceAnalyzer';
+import TopPerformingPosts from './TopPerformingPosts';
 
 // Helper function to generate realistic heatmap data
 const generateHeatmapData = (posts: PostData[]) => {
@@ -244,6 +245,7 @@ export const DashboardMain: React.FC = () => {
                                 />
                             </div>
                         </div>
+                        <TopPerformingPosts posts={posts} />
                     </div>
                 </div>
 
