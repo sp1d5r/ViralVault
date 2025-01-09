@@ -9,7 +9,7 @@ import { FirebaseDatabaseService, PostData } from 'shared';
 import { Unsubscribe } from 'firebase/firestore';
 
 // Helper function to generate realistic heatmap data
-const generateHeatmapData = () => {
+const generateHeatmapData = (posts: PostData[]) => {
     const weeks = 52;
     const daysPerWeek = 7;
     const data = [];
@@ -24,18 +24,26 @@ const generateHeatmapData = () => {
     const daysSinceStartOfWeek = startDate.getDay();
     startDate.setDate(startDate.getDate() - daysSinceStartOfWeek);
 
+    // Create a map of post counts by date
+    const postsByDate = new Map<string, number>();
+    posts.forEach(post => {
+        const postDate = new Date(post.postDate).toDateString();
+        postsByDate.set(postDate, (postsByDate.get(postDate) || 0) + 1);
+    });
+
+    // Generate the heatmap data
     for (let week = 0; week < weeks; week++) {
         const weekData = [];
         for (let day = 0; day < daysPerWeek; day++) {
             const date = new Date(startDate);
             date.setDate(startDate.getDate() + (week * 7) + day);
             
-            // Don't show future dates
-            const value = date > today ? 0 : Math.floor(Math.random() * 5);
+            // Get actual post count for this date
+            const count = postsByDate.get(date.toDateString()) || 0;
             
             weekData.push({
                 date,
-                value
+                value: count
             });
         }
         data.push(weekData);
@@ -134,7 +142,6 @@ const calculateAnalytics = (posts: PostData[]) => {
 
 export const DashboardMain: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const heatmapData = generateHeatmapData();
     const [posts, setPosts] = useState<PostData[]>([]);
     const [loading, setLoading] = useState(true);
     const {authState} = useAuth();
@@ -182,6 +189,9 @@ export const DashboardMain: React.FC = () => {
     }, [authState.user?.uid]);
 
     const analytics = calculateAnalytics(posts);
+
+    // Move heatmap data generation into the component
+    const heatmapData = generateHeatmapData(posts);
 
     return (
         <div className="space-y-6">
