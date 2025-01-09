@@ -270,7 +270,7 @@ const DashboardProfile = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
+      className="fixed inset-0 flex items-center justify-center p-4"
     >
       <Card className="w-full max-w-4xl">
         <CardHeader className="flex flex-row items-center justify-between">
@@ -338,13 +338,13 @@ const DashboardProfile = () => {
   );
 
   if (!profile) {
-    return <div className="min-h-screen bg-gray-50 p-6">
+    return <div className="min-h-screen p-6">
         <h1>Failed to get user info</h1>
     </div>
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen text-white p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
