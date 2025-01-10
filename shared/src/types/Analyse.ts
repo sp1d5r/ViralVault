@@ -13,6 +13,7 @@ export interface ContextSettings {
 }
 
 export interface PostContext {
+    id: string;
     title: string;
     hook: string;
     postDate: string;

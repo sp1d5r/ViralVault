@@ -37,6 +37,7 @@ export const PerformanceAnalyzer: React.FC<PerformanceAnalyzerProps> = ({ posts 
                 .slice(-contextSettings.postHistory)
                 .map((post: PostData) => {
                     const context: any = {
+                        id: post.id,
                         title: post.title,
                         hook: post.hook,
                         postDate: post.postDate,
