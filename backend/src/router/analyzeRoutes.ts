@@ -3,6 +3,6 @@ import { analyzePerformance } from '../controllers/analyzeController';
 
 const router = Router();
 
-router.post('/analyze', analyzePerformance);
+router.post('/', analyzePerformance);
 
 export default router; 
