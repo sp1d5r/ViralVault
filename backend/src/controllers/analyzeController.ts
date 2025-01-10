@@ -43,8 +43,6 @@ export const analyzePerformance = async (
             contextSettings
         };
 
-        console.log(analysisDoc);
-
          await FirebaseDatabaseService.addDocument(
             'viral-vault-chats',
             analysisDoc,

@@ -1,23 +1,9 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button } from "../shadcn/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "../shadcn/dropdown-menu";
-import { Menu, Moon, Sun } from 'lucide-react';
-import { useDarkMode } from '../../contexts/DarkModeProvider';
 import { AuthStatus, useAuth } from '../../contexts/AuthenticationProvider';
 
 export default function Navbar() {
-  const navigate = useNavigate();
-  const {darkModeState, toggleDarkMode} = useDarkMode();
   const {authState} = useAuth()
-
-  const handleNavigation = (path: string) => {
-    navigate(path);
-  };
 
   return (
     <nav className="sticky top-0 bg-neutral-950 border-b border-neutral-800 z-50">
