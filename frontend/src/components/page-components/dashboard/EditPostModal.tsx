@@ -397,7 +397,14 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({ isOpen, onClose, p
                     <div className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="song">Background Song</Label>
-                            <Input id="song" name="song" className="bg-neutral-900" value={formData.song} onChange={handleInputChange} />
+                            <Input 
+                                id="song" 
+                                name="song" 
+                                value={formData.song || ''}
+                                onChange={handleInputChange}
+                                className="bg-neutral-900" 
+                                placeholder="Enter song name..."
+                            />
                         </div>
 
                         <div className="space-y-2">
@@ -405,10 +412,24 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({ isOpen, onClose, p
                             <Textarea 
                                 id="notes" 
                                 name="notes"
-                                placeholder={formData.notes || "Your thoughts and plans..."}
-                                className="bg-neutral-900"
-                                value={formData.notes}
+                                value={formData.notes || ''}
                                 onChange={handleInputChange}
+                                className="bg-neutral-900"
+                                placeholder="Your thoughts and plans..."
+                                rows={4}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="postReleaseNotes">Post-release Notes</Label>
+                            <Textarea 
+                                id="postReleaseNotes" 
+                                name="postReleaseNotes"
+                                value={formData.postReleaseNotes || ''}
+                                onChange={handleInputChange}
+                                className="bg-neutral-900"
+                                placeholder="Notes after posting..."
+                                rows={4}
                             />
                         </div>
                     </div>
