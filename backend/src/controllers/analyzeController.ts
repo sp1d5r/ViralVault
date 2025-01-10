@@ -1,7 +1,21 @@
-import { RequestHandler } from 'express';
+import { Request, Response } from 'express';
 import { analyzePostsData } from '../services/analyzeService';
+import { ContextSettings, PostContext } from 'shared';
 
-export const analyzePerformance: RequestHandler = async (req, res): Promise<void> => {
+type AnalyzeRequest = Request<
+    Record<string, never>,  // params
+    { response: string } | { error: string },  // response
+    {  // body
+        question: string;
+        context: PostContext[];
+        contextSettings: ContextSettings;
+    }
+>;
+
+export const analyzePerformance = async (
+    req: AnalyzeRequest,
+    res: Response<{ response: string } | { error: string }>
+): Promise<void> => {
     try {
         const { question, context, contextSettings } = req.body;
         

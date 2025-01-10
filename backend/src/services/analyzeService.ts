@@ -1,4 +1,4 @@
-import { ClaudeService } from 'shared';
+import { ClaudeService , ContextSettings, PostContext } from 'shared';
 import { z } from 'zod';
 
 // Define the response schema
@@ -6,19 +6,9 @@ const analysisResponseSchema = z.string();
 
 export const analyzePostsData = async (
     question: string, 
-    context: any[], 
-    contextSettings: {
-        includeScripts: boolean;
-        includeAnalytics: boolean;
-        postHistory: number;
-        analyticsTypes: {
-            retention: boolean;
-            views: boolean;
-            engagement: boolean;
-            watchTime: boolean;
-        };
-    }
-) => {
+    context: PostContext[], 
+    contextSettings: ContextSettings
+): Promise<string> => {
     try {
         const claude = new ClaudeService({
             apiKey: process.env.CLAUDE_API_KEY as string,

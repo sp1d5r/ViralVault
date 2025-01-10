@@ -4,6 +4,7 @@ import { Textarea } from "../../shadcn/textarea";
 import { Checkbox } from "../../shadcn/checkbox";
 import { PostData } from 'shared';
 import { Loader2 } from 'lucide-react';
+import { useApi } from '../../../contexts/ApiContext';
 
 interface PerformanceAnalyzerProps {
     posts: PostData[];
@@ -13,6 +14,7 @@ export const PerformanceAnalyzer: React.FC<PerformanceAnalyzerProps> = ({ posts 
     const [query, setQuery] = useState('');
     const [response, setResponse] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const { fetchWithAuth } = useApi();
     const [contextSettings, setContextSettings] = useState({
         includeScripts: false,
         includeAnalytics: false,
@@ -31,9 +33,9 @@ export const PerformanceAnalyzer: React.FC<PerformanceAnalyzerProps> = ({ posts 
         try {
             // Prepare context based on settings
             const contextPosts = posts
-                .filter(post => post.status === 'posted')
+                .filter((post: PostData) => post.status === 'posted')
                 .slice(-contextSettings.postHistory)
-                .map(post => {
+                .map((post: PostData) => {
                     const context: any = {
                         title: post.title,
                         hook: post.hook,
@@ -70,7 +72,7 @@ export const PerformanceAnalyzer: React.FC<PerformanceAnalyzerProps> = ({ posts 
                     return context;
                 });
 
-            const response = await fetch('/api/analyze', {
+            const response = await fetchWithAuth('/api/analyze', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -85,6 +87,7 @@ export const PerformanceAnalyzer: React.FC<PerformanceAnalyzerProps> = ({ posts 
             const data = await response.json();
             setResponse(data.response);
         } catch (error) {
+            console.log(error);
             setResponse("Sorry, I couldn't analyze that right now. Please try again.");
         } finally {
             setIsLoading(false);
