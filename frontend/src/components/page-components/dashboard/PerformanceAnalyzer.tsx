@@ -86,7 +86,12 @@ export const PerformanceAnalyzer: React.FC<PerformanceAnalyzerProps> = ({ posts 
             });
 
             const data = await response.json();
-            setResponse(data.response);
+
+            if (data && data.response) {
+                window.location.href = `/support-chat?question=${data.response}`;
+            } else {
+                setResponse("Sorry, I couldn't analyze that right now. Please try again.");
+            }
         } catch (error) {
             console.log(error);
             setResponse("Sorry, I couldn't analyze that right now. Please try again.");
