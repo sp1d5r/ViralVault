@@ -48,7 +48,7 @@ function App() {
                   <Route path="/onboarding" element={<Onboarding />} />
 
                   {/* Chat Page */}
-                  <Route path="/chat" element={<ChatPage />} /> 
+                  <Route path="/support-chat" element={<ChatPage />} /> 
 
                   {/* Main Page */}
                   <Route path="/dashboard" element={<Dashboard />} />
