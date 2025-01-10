@@ -72,7 +72,7 @@ export const PerformanceAnalyzer: React.FC<PerformanceAnalyzerProps> = ({ posts 
                     return context;
                 });
 
-            const response = await fetchWithAuth('/api/analyze', {
+            const response = await fetchWithAuth('api/analyze', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
