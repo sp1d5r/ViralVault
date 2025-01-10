@@ -73,7 +73,7 @@ const AnalyticCard: React.FC<{
         <p className={`text-sm mt-2 ${
             parseFloat(change) >= 0 ? 'text-green-400' : 'text-red-400'
         }`}>
-            {change}% from last month
+            {change} from last video.
         </p>
     </div>
 );
