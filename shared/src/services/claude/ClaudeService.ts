@@ -1,4 +1,4 @@
-import { z } from "zod"; // For runtime type validation
+import { z } from "zod";
 
 export interface ClaudeConfig {
   apiKey: string;

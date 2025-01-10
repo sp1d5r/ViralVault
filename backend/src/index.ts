@@ -18,6 +18,7 @@ initializeFirebase({
 import serverless from 'serverless-http';
 import articleRoutes from './router/articleRoutes';
 import paymentRoutes from './router/paymentRoutes';
+import analyzeRoutes from './router/analyzeRoutes';
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -53,6 +54,7 @@ app.use((req, res, next) => {
 // Routes 
 app.use('/api/articles', articleRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/analyze', analyzeRoutes);
 
 app.listen(port, () => {
   console.log(`Backend server running at http://localhost:${port}`);
