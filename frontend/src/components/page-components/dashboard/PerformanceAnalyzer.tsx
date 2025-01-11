@@ -88,7 +88,7 @@ export const PerformanceAnalyzer: React.FC<PerformanceAnalyzerProps> = ({ posts 
             const data = await response.json();
 
             if (data && data.response) {
-                window.location.href = `/support-chat?question=${data.response}`;
+                window.location.href = `/support-chat?id=${data.response}`;
             } else {
                 setResponse("Sorry, I couldn't analyze that right now. Please try again.");
             }
