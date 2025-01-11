@@ -14,6 +14,7 @@ import { ProfileStatus, useProfile } from "../contexts/ProfileProvider";
 import DashboardProfile from "../components/page-components/dashboard/DashboardProfile";
 import { useToast } from "../contexts/ToastProvider";
 import DashboardChat from "../components/page-components/dashboard/DashboardChat";
+import { Button } from "../components/shadcn/button";
 
 const Dashboard: React.FC = () => {
   const [open, setOpen] = useState(false);
@@ -106,6 +107,7 @@ const Dashboard: React.FC = () => {
               onClick={() => handleLinkClick("profile")}
               active={activeContent === "profile"}
             />
+            <Button onClick={() => logout()}>Logout</Button>
           </div>
         </SidebarBody>
       </Sidebar>
