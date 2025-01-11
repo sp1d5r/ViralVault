@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { FirebaseDatabaseService, PostContext, ContextSettings } from "shared";
 import { ScrollArea } from "../components/shadcn/scroll-area";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "../components/shadcn/breadcrumbs";
 
 interface AnalysisDocument {
     question: string;
@@ -62,6 +63,21 @@ export const ChatPage: React.FC = () => {
         <div className="flex flex-col h-screen container">
             {/* Context Posts Section */}
             <div className="bg-neutral-900/50 border-b border-neutral-800 p-4">
+                <Breadcrumb className="text-white">
+                    <BreadcrumbList>
+                        <BreadcrumbItem>
+                            <BreadcrumbLink href="/">Home</BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator />
+                        <BreadcrumbItem>
+                            <BreadcrumbLink href="/support-chat">Chat History</BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator />
+                        <BreadcrumbItem>
+                            <BreadcrumbLink href={`/support-chat?id=${id}`}>Chat</BreadcrumbLink>
+                        </BreadcrumbItem>
+                    </BreadcrumbList>
+                </Breadcrumb>
                 <h2 className="text-4xl font-semibold text-white mb-3">Context Posts</h2>
                 <ScrollArea className="w-full rounded-md">
                     <div className="flex gap-4 pb-4">
