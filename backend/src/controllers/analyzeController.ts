@@ -8,6 +8,7 @@ interface AnalysisDocument {
     postIds: string[];
     timestamp: number;
     contextSettings: ContextSettings;
+    userId: string;
 }
 
 type AnalyzeRequest = Request<
@@ -26,8 +27,9 @@ export const analyzePerformance = async (
 ): Promise<void> => {
     try {
         const { question, context, contextSettings } = req.body;
+        const userId = req.user?.uid;
         
-        if (!question || !context) {
+        if (!question || !context || !userId) {
             res.status(400).json({ error: 'Missing required parameters' });
             return;
         }
@@ -38,9 +40,10 @@ export const analyzePerformance = async (
         const analysisDoc: AnalysisDocument = {
             question,
             response: analysis,
-            postIds: context.map(post => post.id), // Assuming each post has an id
+            postIds: context.map(post => post.id),
             timestamp: Date.now(),
-            contextSettings
+            contextSettings,
+            userId
         };
 
          await FirebaseDatabaseService.addDocument(
