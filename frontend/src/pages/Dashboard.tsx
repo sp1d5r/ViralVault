@@ -5,6 +5,7 @@ import {
   IconUser,
   IconSettings,
   IconLogout,
+  IconMessageCircle,
 } from "@tabler/icons-react";
 import { motion } from "framer-motion";
 import { cn } from "../lib/utils";
@@ -149,6 +150,11 @@ const sidebarLinks = [
     id: "home",
     label: "Dashboard",
     icon: <IconHome className="h-5 w-5 flex-shrink-0" />
+},
+{
+    id: "support-chat",
+    label: "Chat History",
+    icon: <IconMessageCircle className="h-5 w-5 flex-shrink-0" />
 },
 {
     id: "profile",
