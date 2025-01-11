@@ -70,7 +70,7 @@ export const ChatPage: React.FC = () => {
                         </BreadcrumbItem>
                         <BreadcrumbSeparator />
                         <BreadcrumbItem>
-                            <BreadcrumbLink href="/support-chat">Chat History</BreadcrumbLink>
+                            <BreadcrumbLink href="/dashboard?content=support-chat">Chat History</BreadcrumbLink>
                         </BreadcrumbItem>
                         <BreadcrumbSeparator />
                         <BreadcrumbItem>
