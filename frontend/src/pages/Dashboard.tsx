@@ -4,6 +4,7 @@ import {
   IconHome,
   IconUser,
   IconMessageCircle,
+  IconLogout,
 } from "@tabler/icons-react";
 import { motion } from "framer-motion";
 import { cn } from "../lib/utils";
@@ -107,7 +108,9 @@ const Dashboard: React.FC = () => {
               onClick={() => handleLinkClick("profile")}
               active={activeContent === "profile"}
             />
-            <Button onClick={() => logout()}>Logout</Button>
+            {open ? <Button className="bg-violet-500 hover:bg-violet-600" onClick={() => logout()}>Logout</Button> : <Button className="bg-violet-500 hover:bg-violet-600"   onClick={() => logout()}>
+              <IconLogout className="h-5 w-5 flex-shrink-0" />
+            </Button>}
           </div>
         </SidebarBody>
       </Sidebar>
