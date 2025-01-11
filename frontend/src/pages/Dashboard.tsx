@@ -3,8 +3,6 @@ import { Sidebar, SidebarBody, SidebarLink } from "../components/aceturnity/side
 import {
   IconHome,
   IconUser,
-  IconSettings,
-  IconLogout,
   IconMessageCircle,
 } from "@tabler/icons-react";
 import { motion } from "framer-motion";
@@ -15,6 +13,7 @@ import { AuthStatus, useAuth } from "../contexts/AuthenticationProvider";
 import { ProfileStatus, useProfile } from "../contexts/ProfileProvider";
 import DashboardProfile from "../components/page-components/dashboard/DashboardProfile";
 import { useToast } from "../contexts/ToastProvider";
+import DashboardChat from "../components/page-components/dashboard/DashboardChat";
 
 const Dashboard: React.FC = () => {
   const [open, setOpen] = useState(false);
@@ -170,7 +169,7 @@ const renderContent = (contentId: string) => {
     case "profile":
       return <DashboardProfile />;
     case "support-chat":
-      return <p className="text-white">Chat History</p>;
+      return <DashboardChat />;
     default:
       return <h1>404 Not Found</h1>;
   }
