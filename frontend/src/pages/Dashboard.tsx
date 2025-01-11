@@ -169,10 +169,8 @@ const renderContent = (contentId: string) => {
       return <DashboardMain />;
     case "profile":
       return <DashboardProfile />;
-    case "settings":
-      return <h1>Settings</h1>;
-    case "logout":
-      return <h1>Logout Confirmation</h1>;
+    case "support-chat":
+      return <p className="text-white">Chat History</p>;
     default:
       return <h1>404 Not Found</h1>;
   }
