@@ -194,7 +194,10 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
             {/* Timeline dot and line - hidden on mobile */}
             <div className="absolute left-0 top-0 h-full hidden md:block">
                 <div className="w-4 h-4 rounded-full bg-neutral-700 border-4 border-neutral-900 relative z-10" />
-                <div className="absolute left-1/2 top-4 bottom-0 w-0.5 bg-neutral-800 -translate-x-1/2" />
+                <div 
+                    className="absolute left-1/2 top-0 h-[calc(100%+2rem)] w-0.5 bg-neutral-800 -translate-x-1/2" 
+                    style={{ top: '1rem' }}
+                />
             </div>
 
             {/* Content card */}
@@ -597,10 +600,12 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
 
 const PostTimelineSkeleton = () => (
     <div className="flex gap-4 relative px-1 md:px-8 pb-8">
-        {/* Timeline dot and line - hidden on mobile */}
         <div className="absolute left-0 top-0 h-full hidden md:block">
             <div className="w-4 h-4 rounded-full bg-neutral-800 relative z-10" />
-            <div className="absolute left-1/2 top-4 bottom-0 w-0.5 bg-neutral-800 -translate-x-1/2" />
+            <div 
+                className="absolute left-1/2 top-0 h-[calc(100%+2rem)] w-0.5 bg-neutral-800 -translate-x-1/2" 
+                style={{ top: '1rem' }}
+            />
         </div>
 
         {/* Content card */}

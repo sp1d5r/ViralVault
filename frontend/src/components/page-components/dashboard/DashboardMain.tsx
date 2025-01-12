@@ -268,7 +268,7 @@ export const DashboardMain: React.FC = () => {
                                                             style={{
                                                                 backgroundColor: day.value === 0 
                                                                     ? 'rgba(99, 102, 241, 0.1)' 
-                                                                    : `rgba(99, 102, 241, ${0.2 + (day.value * 0.2)})`
+                                                                    : `rgba(99, 102, 241, ${0.2 + ((day.value+5) * 0.2)})`
                                                             }}
                                                             whileHover={{ scale: 1.2 }}
                                                             title={`${day.date.toLocaleDateString()}: ${day.value} posts`}
