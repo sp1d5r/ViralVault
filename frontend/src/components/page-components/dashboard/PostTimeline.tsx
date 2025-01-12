@@ -52,7 +52,7 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
         favorites: 0,
         totalPlayTime: 0,
         avgWatchTime: 0,
-        fullVideoPercentage: 0
+        fullVideoPercentage: 0,
     });
     const [showEditModal, setShowEditModal] = useState(false);
     
