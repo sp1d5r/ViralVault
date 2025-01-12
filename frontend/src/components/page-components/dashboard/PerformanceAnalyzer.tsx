@@ -33,7 +33,6 @@ export const PerformanceAnalyzer: React.FC<PerformanceAnalyzerProps> = ({ posts 
         try {
             // Prepare context based on settings
             const contextPosts = posts
-                .filter((post: PostData) => post.status === 'posted')
                 .slice(-contextSettings.postHistory)
                 .map((post: PostData) => {
                     const context: any = {

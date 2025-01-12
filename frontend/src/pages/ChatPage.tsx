@@ -36,6 +36,7 @@ export const ChatPage: React.FC = () => {
                     if (doc) {
                         setAnalysis(doc);
                         setPosts([]);
+                        console.log(doc.postIds);
                         doc.postIds.forEach(postId => {
                             FirebaseDatabaseService.getDocument<PostContext>(
                                 'tiktok-posts',
