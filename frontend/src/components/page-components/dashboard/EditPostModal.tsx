@@ -110,15 +110,16 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({ isOpen, onClose, p
         }));
     };
 
-    const [analyticsData, setAnalyticsData] = useState(post.analytics || {
-        views: 0,
-        likes: 0,
-        comments: 0,
-        shares: 0,
-        favorites: 0,
-        totalPlayTime: 0,
-        avgWatchTime: 0,
-        fullVideoPercentage: 0,
+    const [analyticsData, setAnalyticsData] = useState({
+        views: post.analytics?.views || 0,
+        likes: post.analytics?.likes || 0,
+        comments: post.analytics?.comments || 0,
+        shares: post.analytics?.shares || 0,
+        favorites: post.analytics?.favorites || 0,
+        totalPlayTime: post.analytics?.totalPlayTime || 0,
+        avgWatchTime: post.analytics?.avgWatchTime || 0,
+        fullVideoPercentage: post.analytics?.fullVideoPercentage || 0,
+        newFollowers: post.analytics?.newFollowers || 0,
     });
 
     const renderStepContent = () => {
@@ -494,6 +495,17 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({ isOpen, onClose, p
 
     useEffect(() => {
         setFormData(post);
+        setAnalyticsData({
+            views: post.analytics?.views || 0,
+            likes: post.analytics?.likes || 0,
+            comments: post.analytics?.comments || 0,
+            shares: post.analytics?.shares || 0,
+            favorites: post.analytics?.favorites || 0,
+            totalPlayTime: post.analytics?.totalPlayTime || 0,
+            avgWatchTime: post.analytics?.avgWatchTime || 0,
+            fullVideoPercentage: post.analytics?.fullVideoPercentage || 0,
+            newFollowers: post.analytics?.newFollowers || 0,
+        });
         setStep(0);
         setShowSuccess(false);
     }, [post]);
