@@ -2,7 +2,7 @@ name: Deploy Backend
 
 on:
   push:
-    branches: [ 'none' ]
+    branches: [ 'main' ]
     paths:
       - 'backend/**'
       - 'infra/**'
@@ -10,8 +10,8 @@ on:
   workflow_dispatch:
 
 env:
-  AWS_REGION: eu-west-1
-  ECR_REPOSITORY: monorepo-example
+  AWS_REGION: eu-west-2
+  ECR_REPOSITORY: viral-vault
 
 jobs:
   check_changes:
@@ -90,7 +90,7 @@ jobs:
         uses: pulumi/actions@v6
         with:
           command: up
-          stack-name: monorepo
+          stack-name: viral-vault
           work-dir: ./infra
           create-stack: true  # Creates the stack if it doesn't exist
           refresh: true 
