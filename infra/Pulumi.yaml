@@ -1,4 +1,4 @@
-name: monorepo-example
+name: viral-vault
 runtime:
   name: python
   options:
