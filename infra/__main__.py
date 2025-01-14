@@ -4,7 +4,7 @@ from core.lambda_service import LambdaService
 
 # Create a Lambda service with environment variables
 service = LambdaService(
-    name="monorepo-example",
+    name="viral-vault",
     environment_vars=[
         "NOTION_API_KEY",
         "NOTION_DATABASE_ID",
@@ -17,6 +17,7 @@ service = LambdaService(
         "FIREBASE_MESSAGING_SENDER_ID",
         "FIREBASE_APP_ID",
         "FIREBASE_MEASUREMENT_ID",
+        "CLAUDE_API_KEY",
     ],
     image_tag=os.getenv('IMAGE_TAG', 'latest')
 )
