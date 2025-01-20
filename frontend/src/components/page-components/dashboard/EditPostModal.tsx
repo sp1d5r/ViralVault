@@ -160,8 +160,8 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({ isOpen, onClose, p
                         <div className="space-y-2">
                             <Label htmlFor="status">Status</Label>
                             <Select>
-                                <SelectTrigger className="bg-neutral-900">
-                                    <SelectValue placeholder="Select status" />
+                                <SelectTrigger className="bg-neutral-900" value={formData.status}>
+                                    <SelectValue placeholder={formData.status ? formData.status : "Select status"} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="draft">Draft</SelectItem>
