@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FirebaseDatabaseService } from 'shared';
 import { Skeleton } from '../../shadcn/skeleton';
-import { Edit, ChartBar, FileText, Share2, Heart, MessageCircle, Play, Star, Clock, Trash2, Save, UserPlus } from 'lucide-react';
+import { Edit, ChartBar, FileText, Share2, Heart, MessageCircle, Play, Star, Clock, Trash2, Save, UserPlus, Scroll } from 'lucide-react';
 import { Button } from '../../shadcn/button';
 import { PostData, Analytics } from 'shared';
 import { 
@@ -55,6 +55,8 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
         fullVideoPercentage: 0,
     });
     const [showEditModal, setShowEditModal] = useState(false);
+    const [isEditingScript, setIsEditingScript] = useState(false);
+    const [script, setScript] = useState(post.script || '');
     
     useEffect(() => {
         console.log('Post Analytics Data:', {
@@ -185,6 +187,39 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
         }
     };
 
+    const handleUpdateScript = async () => {
+        if (!post.id) return;
+        
+        try {
+            await FirebaseDatabaseService.updateDocument(
+                'tiktok-posts',
+                post.id,
+                {
+                    script
+                },
+                () => {
+                    toast({
+                        title: 'Script updated successfully',
+                        variant: 'default',
+                    });
+                    setIsEditingScript(false);
+                },
+                (error) => {
+                    toast({
+                        title: 'Failed to update script: ' + error.message,
+                        variant: 'destructive',
+                    });
+                }
+            );
+        } catch (error) {
+            console.error('Error updating script:', error);
+            toast({
+                title: 'Something went wrong while updating script',
+                variant: 'destructive',
+            });
+        }
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -235,7 +270,26 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                                 ))}
                             </div>
 
-                            <p>Script: {post.script}</p>
+                            {/* Update the script display section */}
+                            {isEditingScript ? (
+                                <div className="flex gap-2 items-center mt-2">
+                                    <Textarea
+                                        value={script}
+                                        onChange={(e) => setScript(e.target.value)}
+                                        className="flex-1 bg-neutral-800/50"
+                                        placeholder="Enter script..."
+                                    />
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleUpdateScript}
+                                    >
+                                        <Save size={16} />
+                                    </Button>
+                                </div>
+                            ) : (
+                                <p className="mt-2">Script: {post.script}</p>
+                            )}
 
                             {/* Song choice */}
                             {post.song && (
@@ -279,14 +333,21 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                                     <Edit size={16} />
                                 </Button>
                                 <Button 
-                                    variant={showAnalytics? "outline" :"ghost" }
+                                    variant={isEditingScript ? "outline" : "ghost"}
+                                    size="sm"
+                                    onClick={() => setIsEditingScript(!isEditingScript)}
+                                >
+                                    <Scroll size={16} />
+                                </Button>
+                                <Button 
+                                    variant={showAnalytics ? "outline" : "ghost"}
                                     size="sm"
                                     onClick={() => setShowAnalytics(!showAnalytics)}
                                 >
                                     <ChartBar size={16} />
                                 </Button>
                                 <Button 
-                                    variant={showNotes? "outline" : "ghost" }
+                                    variant={showNotes ? "outline" : "ghost"}
                                     size="sm"
                                     onClick={() => setShowNotes(!showNotes)}
                                 >
