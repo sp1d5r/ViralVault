@@ -29,7 +29,12 @@ export const Landing: React.FC = () => {
             Track, analyze, and optimize your video content performance across all platforms.
             Make data-driven decisions that drive engagement.
           </p>
-          <Button className="dark:text-white bg-indigo-500 hover:bg-indigo-600">
+          <Button 
+            className="dark:text-white bg-indigo-500 hover:bg-indigo-600"
+            onClick={() => {
+              window.location.href = '/dashboard';
+            }}
+          >
             Start free today
           </Button>
         </div>
