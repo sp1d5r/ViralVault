@@ -255,10 +255,10 @@ export const DashboardMain: React.FC = () => {
                         {/* Heatmap and Timeline sections */}
                         <div className="bg-neutral-900/50 rounded-lg p-4 sm:p-6">
                             <div className="flex flex-col lg:flex-row gap-6">
-                                <div className="flex-1">
+                                <div>
                                     <h2 className="text-lg font-semibold mb-4">Content Activity</h2>
                                     <div className="overflow-x-auto pb-2">
-                                        <div className="flex gap-[3px] min-w-[750px]">
+                                        <div className="flex gap-[3px] min-w-[600px]">
                                             {heatmapData.map((week, weekIndex) => (
                                                 <div key={weekIndex} className="flex flex-col gap-[3px]">
                                                     {week.map((day, dayIndex) => (
@@ -292,7 +292,7 @@ export const DashboardMain: React.FC = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="lg:w-96">
+                                <div className="flex-1 ">
                                     <PerformanceAnalyzer posts={posts} />
                                 </div>
                             </div>
