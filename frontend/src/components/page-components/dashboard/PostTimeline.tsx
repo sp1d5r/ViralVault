@@ -227,13 +227,15 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                                         className="px-2 py-1 rounded-full text-xs"
                                         style={{
                                             backgroundColor: `${stringToColor(tag)}20`,
-                                            color: stringToColor(tag)
+                                            color: 'white'
                                         }}
                                     >
                                         {tag}
                                     </span>
                                 ))}
                             </div>
+
+                            <p>Script: {post.script}</p>
 
                             {/* Song choice */}
                             {post.song && (
