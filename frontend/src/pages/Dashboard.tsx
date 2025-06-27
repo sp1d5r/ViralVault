@@ -5,6 +5,8 @@ import {
   IconUser,
   IconMessageCircle,
   IconLogout,
+  IconFileText,
+  IconSettings,
 } from "@tabler/icons-react";
 import { motion } from "framer-motion";
 import { cn } from "../lib/utils";
@@ -15,6 +17,8 @@ import { ProfileStatus, useProfile } from "../contexts/ProfileProvider";
 import DashboardProfile from "../components/page-components/dashboard/DashboardProfile";
 import { useToast } from "../contexts/ToastProvider";
 import DashboardChat from "../components/page-components/dashboard/DashboardChat";
+import DashboardStories from "../components/page-components/dashboard/DashboardStories";
+import { SystemPromptManager } from "../components/page-components/dashboard/SystemPromptManager";
 import { Button } from "../components/shadcn/button";
 
 const Dashboard: React.FC = () => {
@@ -156,6 +160,16 @@ const sidebarLinks = [
     icon: <IconHome className="h-5 w-5 flex-shrink-0" />
 },
 {
+    id: "stories",
+    label: "Stories",
+    icon: <IconFileText className="h-5 w-5 flex-shrink-0" />
+},
+{
+    id: "system-prompts",
+    label: "System Prompts",
+    icon: <IconSettings className="h-5 w-5 flex-shrink-0" />
+},
+{
     id: "support-chat",
     label: "Chat History",
     icon: <IconMessageCircle className="h-5 w-5 flex-shrink-0" />
@@ -175,6 +189,10 @@ const renderContent = (contentId: string) => {
       return <DashboardProfile />;
     case "support-chat":
       return <DashboardChat />;
+    case "stories":
+      return <DashboardStories />;
+    case "system-prompts":
+      return <SystemPromptManager />;
     default:
       return <h1>404 Not Found</h1>;
   }

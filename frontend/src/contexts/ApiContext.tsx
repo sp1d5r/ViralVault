@@ -20,7 +20,14 @@ export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     if (authState.user) {
       const token = await FirebaseAuthService.getToken();
-      headers.set('Authorization', `Bearer ${token}`);
+      console.log('API Context: Token obtained, length:', token?.length || 0);
+      if (token) {
+        headers.set('Authorization', `Bearer ${token}`);
+      } else {
+        console.error('API Context: No token available');
+      }
+    } else {
+      console.log('API Context: No authenticated user');
     }
 
     const response = await fetch(`${apiUrl}/${endpoint}`, {
@@ -30,6 +37,7 @@ export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     if (!response.ok) {
+      console.error('API Context: Request failed:', response.status, response.statusText);
       throw new Error(`API Error: ${response.statusText}`);
     }
 
