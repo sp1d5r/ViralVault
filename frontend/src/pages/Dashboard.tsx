@@ -65,7 +65,7 @@ const Dashboard: React.FC = () => {
           switch (profileStatus) {
             case ProfileStatus.NO_PROFILE:
             case ProfileStatus.NEEDS_ONBOARDING:
-              navigate("/onboarding");
+              // navigate("/onboarding");
               break;
             case ProfileStatus.COMPLETE:
             case ProfileStatus.LOADING:
@@ -83,59 +83,55 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className={cn(
-      "rounded-md flex flex-col md:flex-row bg-white dark:bg-neutral-950 w-full flex-1 mx-auto border border-neutral-200 dark:border-neutral-700 overflow-hidden px-1 py-1",
-      "h-screen"
-    )}>
-      <Sidebar open={open} setOpen={setOpen}>
-        <SidebarBody className="justify-between gap-10 bg-gray-100 dark:bg-neutral-950 rounded-l-xl">
-          <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
-            {open ? <Logo /> : <LogoIcon />}
-            <div className="mt-8 flex flex-col gap-2 text-gray-800 dark:text-white">
-              {sidebarLinks.map((link) => (
-                <SidebarLink 
-                  key={link.id} 
-                  link={link} 
-                  onClick={() => handleLinkClick(link.id)}
-                  active={activeContent === link.id}
-                />
-              ))}
+    <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
+      <div className="flex flex-col md:flex-row w-full h-screen">
+        <Sidebar open={open} setOpen={setOpen}>
+          <SidebarBody className="justify-between gap-10">
+            <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
+              {open ? <Logo /> : <LogoIcon />}
+              <div className="mt-8 flex flex-col gap-2">
+                {sidebarLinks.map((link) => (
+                  <SidebarLink 
+                    key={link.id} 
+                    link={link} 
+                    onClick={() => handleLinkClick(link.id)}
+                    active={activeContent === link.id}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-          <div className="flex flex-col gap-2 text-gray-800 dark:text-white">
-            <SidebarLink
-              link={{
-                id: "profile",
-                label: (profile && profile.displayName) || '',
-                icon: <UserAvatar />
-              }}
-              onClick={() => handleLinkClick("profile")}
-              active={activeContent === "profile"}
-            />
-            {open ? <Button className="bg-violet-500 hover:bg-violet-600" onClick={() => logout()}>Logout</Button> : <Button className="bg-violet-500 hover:bg-violet-600"   onClick={() => logout()}>
-              <IconLogout className="h-5 w-5 flex-shrink-0" />
-            </Button>}
-          </div>
-        </SidebarBody>
-      </Sidebar>
-      <main className="flex-1 p-6 overflow-auto">
-        <nav>
-
-        </nav>
-        {renderContent(activeContent)}
-      </main>
+            <div className="flex flex-col gap-2">
+              <SidebarLink
+                link={{
+                  id: "profile",
+                  label: (profile && profile.displayName) || '',
+                  icon: <UserAvatar />
+                }}
+                onClick={() => handleLinkClick("profile")}
+                active={activeContent === "profile"}
+              />
+              {open ? <Button variant="outline" size="sm" className="bg-red-500/10 border-red-500/20 text-red-300 hover:bg-red-500/20" onClick={() => logout()}>Logout</Button> : <Button variant="outline" size="sm" className="bg-red-500/10 border-red-500/20 text-red-300 hover:bg-red-500/20" onClick={() => logout()}>
+                <IconLogout className="h-5 w-5 flex-shrink-0" />
+              </Button>}
+            </div>
+          </SidebarBody>
+        </Sidebar>
+        <main className="flex-1 overflow-auto">
+          {renderContent(activeContent)}
+        </main>
+      </div>
     </div>
   );
 };
 
 const Logo = () => (
-  <div className="font-normal flex -space-x-[0.5rem] items-center text-sm text-gray-200 py-1 relative z-20">
-    <p className="text-2xl font-bold text-indigo-500">V</p>
-    <p className="text-2xl font-bold text-blue-500">V</p>
+  <div className="font-normal flex -space-x-[0.5rem] items-center text-sm text-white py-1 relative z-20">
+    <p className="text-2xl font-bold text-indigo-400">V</p>
+    <p className="text-2xl font-bold text-blue-400">V</p>
     <motion.span
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="font-medium pl-2 whitespace-pre ml-3 bg-gradient-to-r from-indigo-500 via-blue-500 to-violet-500 bg-clip-text text-transparent"
+      className="font-medium pl-2 whitespace-pre ml-3 bg-gradient-to-r from-indigo-400 via-blue-400 to-violet-400 bg-clip-text text-transparent"
     >
       ViralVault
     </motion.span>
@@ -143,14 +139,14 @@ const Logo = () => (
 );
 
 const LogoIcon = () => (
-  <div className="font-normal flex -space-x-2 items-center text-sm text-gray-200 py-1 relative z-20 w-10">
-    <p className="text-2xl font-bold text-indigo-500">V</p>
-    <p className="text-2xl font-bold text-blue-500">V</p>
+  <div className="font-normal flex -space-x-2 items-center text-sm text-white py-1 relative z-20 w-10">
+    <p className="text-2xl font-bold text-indigo-400">V</p>
+    <p className="text-2xl font-bold text-blue-400">V</p>
   </div>
 );
 
 const UserAvatar = () => (
-<div className="h-7 w-7 flex-shrink-0 rounded-full bg-gray-300 dark:bg-gray-600" />
+<div className="h-7 w-7 flex-shrink-0 rounded-full bg-neutral-600" />
 );
 
 const sidebarLinks = [

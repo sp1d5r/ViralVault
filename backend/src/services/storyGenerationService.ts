@@ -9,6 +9,7 @@ const storySlideResponseSchema = z.object({
     slideType: z.string(),
     title: z.string(),
     content: z.string(),
+    imagePrompt: z.string(),
     dataPoints: z.array(z.string()).optional(),
     recommendations: z.array(z.string()).optional()
   })),
@@ -18,13 +19,19 @@ const storySlideResponseSchema = z.object({
 });
 
 export interface StoryGenerationRequest {
-  slideType: 'growth' | 'content-evolution' | 'viral-moments' | 'audience-insights' | 'success-patterns' | 'performance-comparison' | 'roi-demonstration' | 'future-strategy';
+  slideType: 'relationship-drama' | 'personal-growth' | 'celebrity-story' | 'life-transformation' | 'social-commentary' | 'humorous-tale' | 'inspirational-journey' | 'drama-series';
   posts: PostContext[];
   targetAudience: 'personal' | 'clients' | 'stakeholders' | 'team';
   tone: 'professional' | 'casual' | 'inspirational';
   focusAreas: string[];
   slideCount: number;
   userId: string;
+  storyConcept?: string; // Optional custom story concept
+  // Image customization options
+  imageStyle: 'realistic' | 'cartoon' | 'anime' | 'minimalist' | '3d-render' | 'watercolor' | 'digital-art';
+  aspectRatio: '16:9' | '4:3' | '1:1' | '9:16' | '3:2';
+  characterStyle?: string; // Optional: "looks like [actress/actor name]" or "character design"
+  colorScheme?: 'warm' | 'cool' | 'neutral' | 'vibrant' | 'monochrome';
 }
 
 interface SystemPromptDocument {
@@ -94,34 +101,55 @@ ${storyPrompt}
 **Tone:** ${request.tone}
 **Focus Areas:** ${request.focusAreas.join(', ')}
 **Number of Slides:** ${request.slideCount}
+${request.storyConcept ? `**Custom Story Concept:** ${request.storyConcept}` : ''}
+
+**Image Customization:**
+- **Style:** ${request.imageStyle}
+- **Aspect Ratio:** ${request.aspectRatio}
+- **Color Scheme:** ${request.colorScheme || 'neutral'}
+${request.characterStyle ? `- **Character Style:** ${request.characterStyle}` : ''}
 
 **Available Post Data:**
 ${JSON.stringify(request.posts, null, 2)}
 
-Please generate a compelling story presentation based on the available data. Structure it as a narrative journey that will resonate with the target audience and achieve the creator's business goals.
+Please generate a compelling social media story presentation that will engage viewers and drive engagement. Create a narrative that's perfect for platforms like TikTok, Instagram, or YouTube Shorts.
+
+${request.storyConcept ? `**IMPORTANT:** Use the provided story concept as the foundation for your narrative: "${request.storyConcept}". Build the entire story around this concept while incorporating the selected slide type and focus areas.` : ''}
+
+For each slide, create a detailed image prompt that can be used in AI image generators like DALL-E, Midjourney, or Stable Diffusion. The image prompt should be:
+- Descriptive and specific for social media storytelling
+- Include the specified visual style: ${request.imageStyle}
+- Use the specified aspect ratio: ${request.aspectRatio}
+- Incorporate the color scheme: ${request.colorScheme || 'neutral'}
+${request.characterStyle ? `- Include character styling: ${request.characterStyle}` : ''}
+- Include visual style, mood, and composition
+- Relevant to the slide content and narrative
+- Engaging and attention-grabbing for social media
+- Include specific visual elements that represent the story and characters
 
 The response should be structured as a JSON object with the following format:
 {
-  "title": "Compelling presentation title",
+  "title": "Compelling social media story title",
   "slides": [
     {
       "slideNumber": 1,
-      "slideType": "title",
+      "slideType": "opening",
       "title": "Slide title",
-      "content": "Slide content with narrative and data insights",
-      "dataPoints": ["Key data point 1", "Key data point 2"],
-      "recommendations": ["Action item 1", "Action item 2"]
+      "content": "Slide content with narrative and story elements",
+      "imagePrompt": "Detailed image prompt incorporating the specified style (${request.imageStyle}), aspect ratio (${request.aspectRatio}), and color scheme (${request.colorScheme || 'neutral'})${request.characterStyle ? `, with character styling: ${request.characterStyle}` : ''}",
+      "dataPoints": ["Story beat 1", "Story beat 2"],
+      "recommendations": ["Engagement tip 1", "Engagement tip 2"]
     }
   ],
   "summary": "Brief summary of the story",
-  "keyInsights": ["Insight 1", "Insight 2", "Insight 3"],
-  "nextSteps": ["Next step 1", "Next step 2"]
+  "keyInsights": ["Story insight 1", "Story insight 2", "Story insight 3"],
+  "nextSteps": ["Next story beat 1", "Next story beat 2"]
 }
           `
         }]
       }],
       storySlideResponseSchema,
-      "You are an expert content strategist and data storyteller working with ViralVault. Generate compelling, narrative-driven slides that transform social media data into engaging business stories."
+      "You are an expert social media storyteller and content creator working with ViralVault. Generate compelling, narrative-driven slides that create engaging social media stories perfect for platforms like TikTok and Instagram. For each slide, create detailed image prompts that incorporate the specified visual style, aspect ratio, and color preferences for use in AI image generators."
     );
 
     return response;

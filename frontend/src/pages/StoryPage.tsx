@@ -3,8 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/shadcn/card';
 import { Badge } from '../components/shadcn/badge';
-import { ChevronLeft, ChevronRight, Download, Share2, ArrowLeft, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Share2, ArrowLeft, Sparkles, Copy, Plus } from 'lucide-react';
 import { useApi } from '../contexts/ApiContext';
+import { toast } from '../contexts/ToastProvider';
+import { FirebaseDatabaseService } from 'shared';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from '../components/shadcn/breadcrumbs';
 
 interface StorySlide {
@@ -12,6 +14,7 @@ interface StorySlide {
     slideType: string;
     title: string;
     content: string;
+    imagePrompt: string;
     dataPoints?: string[];
     recommendations?: string[];
 }
@@ -81,6 +84,66 @@ export const StoryPage: React.FC = () => {
         setCurrentSlide(slideIndex);
     };
 
+    const handleConvertToPosts = async () => {
+        if (!story) return;
+
+        try {
+            // Convert the entire story into ONE single post
+            const allSlidesContent = story.generatedStory.slides.map((slide, index) => 
+                `SLIDE ${index + 1}: ${slide.title}\n${slide.content}\n\nIMAGE PROMPT: ${slide.imagePrompt}\n\nSTORY BEATS: ${slide.dataPoints?.join(', ') || 'N/A'}\n\nRECOMMENDATIONS: ${slide.recommendations?.join(', ') || 'N/A'}\n\n---\n`
+            ).join('\n');
+
+            const singlePost = {
+                title: story.generatedStory.title,
+                postDate: new Date(Date.now()).toISOString().slice(0, 16),
+                status: 'draft' as const,
+                hook: story.generatedStory.slides[0]?.title || story.generatedStory.title, // Use first slide title as hook
+                script: `STORY: ${story.generatedStory.title}\n\nSUMMARY: ${story.generatedStory.summary}\n\nTOTAL SLIDES: ${story.generatedStory.slides.length}\n\n${allSlidesContent}\n\nKEY INSIGHTS: ${story.generatedStory.keyInsights.join(', ')}\n\nNEXT STEPS: ${story.generatedStory.nextSteps.join(', ')}`,
+                song: '', // Leave empty for user to fill
+                notes: `Generated from story: ${story.generatedStory.title}\nTotal slides: ${story.generatedStory.slides.length}\nStory type: ${story.slideType}\nTarget audience: ${story.targetAudience}\nTone: ${story.tone}`,
+                postReleaseNotes: `Complete story: ${story.generatedStory.title}\nSlides: ${story.generatedStory.slides.length}\nType: ${story.slideType}\nAudience: ${story.targetAudience}\nTone: ${story.tone}`,
+                tags: [
+                    'story-generated',
+                    'complete-story',
+                    story.slideType,
+                    story.targetAudience,
+                    story.tone,
+                    ...story.focusAreas
+                ],
+                createdAt: Date.now(),
+                userId: story.userId,
+            };
+
+            // Create the single post
+            await new Promise<void>((resolve, reject) => {
+                FirebaseDatabaseService.addDocument(
+                    'tiktok-posts',
+                    singlePost,
+                    (docId: string) => {
+                        resolve();
+                    },
+                    (error: Error) => {
+                        reject(error);
+                    }
+                );
+            });
+
+            // Show success message
+            toast({
+                title: "Post Created!",
+                description: `Successfully converted story into a single post with ${story.generatedStory.slides.length} slides. Check your posts dashboard.`,
+            });
+
+        } catch (error) {
+            console.error('Error converting story to post:', error);
+            toast({
+                title: "Error",
+                description: "Failed to convert story to post. Please try again.",
+                variant: "destructive"
+            });
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-screen text-white">
@@ -97,7 +160,12 @@ export const StoryPage: React.FC = () => {
             <div className="flex items-center justify-center h-screen text-white">
                 <div className="text-center">
                     <p className="text-red-400 mb-4">{error || 'Story not found'}</p>
-                    <Button onClick={() => navigate('/dashboard')}>
+                    <Button 
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate('/dashboard')}
+                        className="bg-neutral-500/10 border-neutral-500/20 text-neutral-300 hover:bg-neutral-500/20"
+                    >
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back to Dashboard
                     </Button>
@@ -145,11 +213,28 @@ export const StoryPage: React.FC = () => {
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm">
+                            <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={handleConvertToPosts}
+                                className="bg-green-500/10 border-green-500/20 text-green-300 hover:bg-green-500/20"
+                            >
+                                <Plus className="mr-2 h-4 w-4" />
+                                Convert to Posts
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="bg-neutral-500/10 border-neutral-500/20 text-neutral-300 hover:bg-neutral-500/20"
+                            >
                                 <Download className="mr-2 h-4 w-4" />
                                 Export
                             </Button>
-                            <Button variant="outline" size="sm">
+                            <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="bg-neutral-500/10 border-neutral-500/20 text-neutral-300 hover:bg-neutral-500/20"
+                            >
                                 <Share2 className="mr-2 h-4 w-4" />
                                 Share
                             </Button>
@@ -211,6 +296,7 @@ export const StoryPage: React.FC = () => {
                                         size="sm"
                                         onClick={prevSlide}
                                         disabled={currentSlide === 0}
+                                        className="bg-neutral-500/10 border-neutral-500/20 text-neutral-300 hover:bg-neutral-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <ChevronLeft className="h-4 w-4" />
                                     </Button>
@@ -219,6 +305,7 @@ export const StoryPage: React.FC = () => {
                                         size="sm"
                                         onClick={nextSlide}
                                         disabled={currentSlide === story.generatedStory.slides.length - 1}
+                                        className="bg-neutral-500/10 border-neutral-500/20 text-neutral-300 hover:bg-neutral-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <ChevronRight className="h-4 w-4" />
                                     </Button>
@@ -230,6 +317,35 @@ export const StoryPage: React.FC = () => {
                                 <div className="prose prose-invert max-w-none">
                                     <p className="text-lg text-neutral-200 leading-relaxed">
                                         {currentSlideData.content}
+                                    </p>
+                                </div>
+
+                                {/* Image Prompt */}
+                                <div className="border-t border-neutral-700 pt-6">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h4 className="text-sm font-semibold text-neutral-300">AI Image Prompt</h4>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(currentSlideData.imagePrompt);
+                                                toast({
+                                                    title: "Image prompt copied!",
+                                                    description: "Ready to paste in your image generator",
+                                                });
+                                            }}
+                                            className="bg-indigo-500/10 border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20"
+                                        >
+                                            Copy Prompt
+                                        </Button>
+                                    </div>
+                                    <div className="p-4 bg-neutral-700/30 rounded-lg border border-neutral-600">
+                                        <p className="text-sm text-neutral-200 font-mono leading-relaxed">
+                                            {currentSlideData.imagePrompt}
+                                        </p>
+                                    </div>
+                                    <p className="text-xs text-neutral-400 mt-2">
+                                        Use this prompt in DALL-E, Midjourney, or other AI image generators
                                     </p>
                                 </div>
 

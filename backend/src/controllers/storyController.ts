@@ -9,6 +9,11 @@ interface StoryGenerationRequestBody {
   tone: StoryGenerationRequest['tone'];
   focusAreas: string[];
   slideCount: number;
+  storyConcept?: string;
+  imageStyle: StoryGenerationRequest['imageStyle'];
+  aspectRatio: StoryGenerationRequest['aspectRatio'];
+  characterStyle?: StoryGenerationRequest['characterStyle'];
+  colorScheme?: StoryGenerationRequest['colorScheme'];
 }
 
 interface StoryDocument {
@@ -29,7 +34,7 @@ export const generateStory = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { slideType, postIds, targetAudience, tone, focusAreas, slideCount } = req.body;
+    const { slideType, postIds, targetAudience, tone, focusAreas, slideCount, storyConcept, imageStyle, aspectRatio, characterStyle, colorScheme } = req.body;
     const userId = req.user?.uid;
 
     if (!userId) {
@@ -37,7 +42,7 @@ export const generateStory = async (
       return;
     }
 
-    if (!slideType || !postIds || !targetAudience || !tone || !focusAreas || !slideCount) {
+    if (!slideType || !postIds || !targetAudience || !tone || !focusAreas || !slideCount || !imageStyle || !aspectRatio) {
       res.status(400).json({ error: 'Missing required parameters' });
       return;
     }
@@ -76,7 +81,12 @@ export const generateStory = async (
       tone,
       focusAreas,
       slideCount,
-      userId
+      userId,
+      storyConcept,
+      imageStyle,
+      aspectRatio,
+      characterStyle,
+      colorScheme
     };
 
     const generatedStory = await generateStorySlides(storyRequest);
