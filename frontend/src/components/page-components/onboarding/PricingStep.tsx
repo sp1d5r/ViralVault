@@ -16,7 +16,7 @@ const PlanStep: React.FC<PlanStepProps> = ({ data, onChange }) => {
       </p>
 
       <div className="space-y-4">
-        {PRICING_PLANS.map((plan) => (
+        {PRICING_PLANS.map((plan: any) => (
           <div
             key={plan.type}
             onClick={() => onChange({ selectedPlan: plan.type })}
@@ -35,7 +35,7 @@ const PlanStep: React.FC<PlanStepProps> = ({ data, onChange }) => {
             </div>
 
             <ul className="space-y-2 mt-4">
-              {plan.features.map((feature, i) => (
+              {plan.features.map((feature: any, i: number) => (
                 <li key={i} className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                   <Check className="w-4 h-4 mr-2 text-green-500" />
                   {feature}

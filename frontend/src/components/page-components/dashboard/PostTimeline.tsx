@@ -422,7 +422,7 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                                                 <Input
                                                     type="number"
                                                     value={analytics.views}
-                                                    onChange={(e) => setAnalytics(prev => ({
+                                                    onChange={(e) => setAnalytics((prev: Analytics) => ({
                                                         ...prev,
                                                         views: parseInt(e.target.value) || 0
                                                     }))}
@@ -438,7 +438,7 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                                                 <Input
                                                     type="number"
                                                     value={analytics.likes}
-                                                    onChange={(e) => setAnalytics(prev => ({
+                                                    onChange={(e) => setAnalytics((prev: Analytics) => ({
                                                         ...prev,
                                                         likes: parseInt(e.target.value) || 0
                                                     }))}
@@ -461,7 +461,7 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                                                 <Input
                                                     type="text"
                                                     value={formatSecondsToTime(analytics.totalPlayTime || 0)}
-                                                    onChange={(e) => setAnalytics(prev => ({
+                                                    onChange={(e) => setAnalytics((prev: Analytics) => ({
                                                         ...prev,
                                                         totalPlayTime: parseTimeToSeconds(e.target.value)
                                                     }))}
@@ -478,7 +478,7 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                                                     type="number"
                                                     step="0.1"
                                                     value={analytics.avgWatchTime}
-                                                    onChange={(e) => setAnalytics(prev => ({
+                                                    onChange={(e) => setAnalytics((prev: Analytics) => ({
                                                         ...prev,
                                                         avgWatchTime: parseFloat(e.target.value) || 0
                                                     }))}
@@ -501,7 +501,7 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                                                 <Input
                                                     type="number"
                                                     value={analytics.newFollowers}
-                                                    onChange={(e) => setAnalytics(prev => ({
+                                                    onChange={(e) => setAnalytics((prev: Analytics) => ({
                                                         ...prev,
                                                         newFollowers: parseInt(e.target.value) || 0
                                                     }))}
@@ -526,7 +526,7 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                                                     min="0"
                                                     max="100"
                                                     value={analytics.fullVideoPercentage}
-                                                    onChange={(e) => setAnalytics(prev => ({
+                                                    onChange={(e) => setAnalytics((prev: Analytics) => ({
                                                         ...prev,
                                                         fullVideoPercentage: parseInt(e.target.value) || 0
                                                     }))}
@@ -758,7 +758,7 @@ export const PostTimeline: React.FC<PostTimelineProps> = ({ posts, loading }) =>
                         variant: 'default',
                     });
                 },
-                (error) => {
+                (error: Error) => {
                     toast({
                         title: 'Failed to delete post: ' + error.message,
                         variant: 'destructive',

@@ -36,7 +36,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
 
   useEffect(() => {
-    const unsubscribe = FirebaseAuthService.onAuthStateChanged(async firebaseUser => {
+    const unsubscribe = FirebaseAuthService.onAuthStateChanged(async (firebaseUser: any) => {
       if (firebaseUser) {
         setAuthState({
           status: AuthStatus.AUTHENTICATED,
