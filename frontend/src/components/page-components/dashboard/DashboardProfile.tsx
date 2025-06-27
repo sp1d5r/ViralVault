@@ -124,9 +124,9 @@ const DashboardProfile = () => {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-xl font-semibold">Profile Information</CardTitle>
         {!isEditing && (
-          <Button variant="ghost" size="sm" onClick={handleEdit}>
+          <Button variant="outline" size="sm" onClick={handleEdit}>
             <Edit2 className="w-4 h-4 mr-2" />
-            Edit
+            Edit Profile
           </Button>
         )}
       </CardHeader>
@@ -199,11 +199,11 @@ const DashboardProfile = () => {
         </div>
       </div>
       <div className="flex justify-end space-x-2 mt-4">
-        <Button variant="outline" onClick={handleCancel}>
+        <Button variant="outline" size="sm" onClick={handleCancel}>
           <X className="w-4 h-4 mr-2" />
           Cancel
         </Button>
-        <Button onClick={handleSave}>
+        <Button variant="outline" size="sm" className="bg-green-500/10 border-green-500/20 text-green-300 hover:bg-green-500/20" onClick={handleSave}>
           <Check className="w-4 h-4 mr-2" />
           Save Changes
         </Button>
@@ -237,6 +237,9 @@ const DashboardProfile = () => {
               )}
             </div>
             <Button 
+              variant="outline"
+              size="sm"
+              className="bg-indigo-500/10 border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20"
               onClick={() => setShowUpgradeModal(true)}
               disabled={isLoading}
             >
@@ -275,8 +278,9 @@ const DashboardProfile = () => {
       <Card className="w-full max-w-4xl">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Change Subscription Plan</CardTitle>
-          <Button variant="ghost" size="sm" onClick={() => setShowUpgradeModal(false)}>
-            <X className="w-4 h-4" />
+          <Button variant="outline" size="sm" onClick={() => setShowUpgradeModal(false)}>
+            <X className="w-4 h-4 mr-2" />
+            Close
           </Button>
         </CardHeader>
         <CardContent>
@@ -310,8 +314,9 @@ const DashboardProfile = () => {
                   </ul>
 
                   <Button 
-                    className="w-full mt-4"
-                    variant={profile!.selectedPlan === plan.type ? "outline" : "default"}
+                    variant="outline"
+                    size="sm"
+                    className={`w-full mt-4 ${profile!.selectedPlan === plan.type ? "bg-green-500/10 border-green-500/20 text-green-300 hover:bg-green-500/20" : "bg-indigo-500/10 border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20"}`}
                     onClick={() => handleUpgrade(plan)}
                   >
                     {isLoading ? (
@@ -344,14 +349,14 @@ const DashboardProfile = () => {
   }
 
   return (
-    <div className="min-h-screen text-white p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
+      <div className="max-w-4xl mx-auto space-y-6 p-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-3xl font-bold mb-8">User Profile</h1>
+          <h1 className="text-3xl font-bold mb-8 text-white">User Profile</h1>
           <ProfileCard />
           <SubscriptionCard />
         </motion.div>

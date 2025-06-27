@@ -88,10 +88,9 @@ export const DesktopSidebar = ({
       <motion.div
         className={cn(
           "h-full px-4 py-4 hidden md:flex md:flex-col",
-          "bg-neutral-950 border-r",
-          "border-indigo-500/50",
-          "shadow-[1px_0_30px_-2px_rgba(99,102,241,0.5)]",
-          "[box-shadow:1px_0_30px_-2px_rgba(99,102,241,0.5),inset_-1px_0_20px_-5px_rgba(99,102,241,0.3),0_0_20px_-3px_rgba(79,70,229,0.5)]",
+          "bg-neutral-800/50 border-r border-neutral-700",
+          "shadow-[1px_0_30px_-2px_rgba(99,102,241,0.3)]",
+          "[box-shadow:1px_0_30px_-2px_rgba(99,102,241,0.3),inset_-1px_0_20px_-5px_rgba(99,102,241,0.2),0_0_20px_-3px_rgba(79,70,229,0.3)]",
           className
         )}
         animate={{
@@ -118,14 +117,14 @@ export const MobileSidebar = ({
       <div
         className={cn(
           "h-10 px-4 py-4 flex flex-row md:hidden items-center justify-between",
-          "bg-neutral-950 border-b border-neutral-800",
-          "shadow-[0_1px_15px_rgba(99,102,241,0.1)]"
+          "bg-neutral-800/50 border-b border-neutral-700",
+          "shadow-[0_1px_15px_rgba(99,102,241,0.2)]"
         )}
         {...props}
       >
         <div className="flex justify-end z-20 w-full">
           <IconMenu2
-            className="text-gray-200 hover:text-white"
+            className="text-neutral-300 hover:text-white"
             onClick={() => setOpen(!open)}
           />
         </div>
@@ -141,14 +140,14 @@ export const MobileSidebar = ({
               }}
               className={cn(
                 "fixed h-full w-full inset-0",
-                "bg-neutral-950 border-r border-neutral-800",
-                "shadow-[1px_0_15px_rgba(99,102,241,0.1)]",
+                "bg-neutral-800/50 border-r border-neutral-700",
+                "shadow-[1px_0_15px_rgba(99,102,241,0.2)]",
                 "p-10 z-[100] flex flex-col justify-between",
                 className
               )}
             >
               <div
-                className="absolute right-10 top-10 z-50 text-gray-200 hover:text-white"
+                className="absolute right-10 top-10 z-50 text-neutral-300 hover:text-white"
                 onClick={() => setOpen(!open)}
               >
                 <IconX />
@@ -178,12 +177,12 @@ export const SidebarLink = ({
   return (
     <div
       className={cn(
-        "flex items-center justify-start gap-2 group/sidebar py-2 cursor-pointer w-[30px] px-[5px] rounded",
-        "text-white hover:text-indigo-400",
-        // Updated active state with more vibrant colors
+        "flex items-center justify-start gap-2 group/sidebar py-3 px-3 cursor-pointer rounded-lg transition-all",
+        "text-neutral-300 hover:text-white",
+        // Updated active state to match Story page styling
         active ? 
-          "bg-gradient-to-r from-indigo-500/20 to-blue-500/20 text-indigo-400" : 
-          "hover:bg-gradient-to-r hover:from-indigo-500/10 hover:to-blue-500/10",
+          "bg-indigo-500/20 border border-indigo-500/30 text-white" : 
+          "hover:bg-neutral-700/50",
         className
       )}
       onClick={onClick}
@@ -192,7 +191,7 @@ export const SidebarLink = ({
       {/* Update icon colors */}
       <div className={cn(
         "transition-colors duration-200",
-        active ? "text-indigo-400" : "text-white group-hover/sidebar:text-indigo-400"
+        active ? "text-indigo-400" : "text-neutral-300 group-hover/sidebar:text-white"
       )}>
         {link.icon}
       </div>
@@ -206,8 +205,8 @@ export const SidebarLink = ({
           "text-sm whitespace-pre inline-block !p-0 !m-0",
           "group-hover/sidebar:translate-x-1 transition duration-150",
           active ? 
-            "text-indigo-400" : 
-            "text-white group-hover/sidebar:text-indigo-400"
+            "text-white" : 
+            "text-neutral-300 group-hover/sidebar:text-white"
         )}
       >
         {link.label}

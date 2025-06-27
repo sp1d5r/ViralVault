@@ -350,96 +350,80 @@ Remember: You're not just presenting data - you're telling a story that will hel
     }
 
     return (
-        <div className="space-y-6">
-            <div>
-                <h2 className="text-4xl font-semibold text-white mb-2">System Prompts</h2>
-                <p className="text-neutral-400">Manage the AI context and instructions used throughout ViralVault</p>
+        <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
+            <div className="space-y-6 p-6">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-4xl font-semibold text-white mb-2">System Prompts</h2>
+                        <p className="text-neutral-400">Manage your AI system prompts for content generation</p>
+                    </div>
+                </div>
+
+                <Tabs defaultValue="app-context" className="space-y-4">
+                    <TabsList className="bg-neutral-800/50 border border-neutral-700">
+                        <TabsTrigger value="app-context" className="text-neutral-300 data-[state=active]:text-white">App Context</TabsTrigger>
+                        <TabsTrigger value="story-generation" className="text-neutral-300 data-[state=active]:text-white">Story Generation</TabsTrigger>
+                        <TabsTrigger value="custom" className="text-neutral-300 data-[state=active]:text-white">Custom</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="app-context" className="space-y-4">
+                        {prompts.filter(p => p.category === 'app-context').map((prompt) => (
+                            <PromptCard
+                                key={prompt.id}
+                                prompt={prompt}
+                                onEdit={startEditing}
+                                onToggleActive={togglePromptActive}
+                                isEditing={editingPrompt?.id === prompt.id}
+                                editableContent={editableContent}
+                                onContentChange={setEditableContent}
+                                onSave={savePrompt}
+                                onCancel={cancelEditing}
+                                saving={saving}
+                                getCategoryIcon={getCategoryIcon}
+                                getCategoryColor={getCategoryColor}
+                            />
+                        ))}
+                    </TabsContent>
+
+                    <TabsContent value="story-generation" className="space-y-4">
+                        {prompts.filter(p => p.category === 'story-generation').map((prompt) => (
+                            <PromptCard
+                                key={prompt.id}
+                                prompt={prompt}
+                                onEdit={startEditing}
+                                onToggleActive={togglePromptActive}
+                                isEditing={editingPrompt?.id === prompt.id}
+                                editableContent={editableContent}
+                                onContentChange={setEditableContent}
+                                onSave={savePrompt}
+                                onCancel={cancelEditing}
+                                saving={saving}
+                                getCategoryIcon={getCategoryIcon}
+                                getCategoryColor={getCategoryColor}
+                            />
+                        ))}
+                    </TabsContent>
+
+                    <TabsContent value="custom" className="space-y-4">
+                        {prompts.filter(p => p.category === 'custom').map((prompt) => (
+                            <PromptCard
+                                key={prompt.id}
+                                prompt={prompt}
+                                onEdit={startEditing}
+                                onToggleActive={togglePromptActive}
+                                isEditing={editingPrompt?.id === prompt.id}
+                                editableContent={editableContent}
+                                onContentChange={setEditableContent}
+                                onSave={savePrompt}
+                                onCancel={cancelEditing}
+                                saving={saving}
+                                getCategoryIcon={getCategoryIcon}
+                                getCategoryColor={getCategoryColor}
+                            />
+                        ))}
+                    </TabsContent>
+                </Tabs>
             </div>
-
-            <Tabs defaultValue="all" className="w-full">
-                <TabsList className="grid w-full grid-cols-4 bg-neutral-800/50">
-                    <TabsTrigger value="all">All Prompts</TabsTrigger>
-                    <TabsTrigger value="app-context">App Context</TabsTrigger>
-                    <TabsTrigger value="story-generation">Story Generation</TabsTrigger>
-                    <TabsTrigger value="custom">Custom</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="all" className="space-y-4">
-                    {prompts.map((prompt) => (
-                        <PromptCard
-                            key={prompt.id}
-                            prompt={prompt}
-                            onEdit={startEditing}
-                            onToggleActive={togglePromptActive}
-                            isEditing={editingPrompt?.id === prompt.id}
-                            editableContent={editableContent}
-                            onContentChange={setEditableContent}
-                            onSave={savePrompt}
-                            onCancel={cancelEditing}
-                            saving={saving}
-                            getCategoryIcon={getCategoryIcon}
-                            getCategoryColor={getCategoryColor}
-                        />
-                    ))}
-                </TabsContent>
-
-                <TabsContent value="app-context" className="space-y-4">
-                    {prompts.filter(p => p.category === 'app-context').map((prompt) => (
-                        <PromptCard
-                            key={prompt.id}
-                            prompt={prompt}
-                            onEdit={startEditing}
-                            onToggleActive={togglePromptActive}
-                            isEditing={editingPrompt?.id === prompt.id}
-                            editableContent={editableContent}
-                            onContentChange={setEditableContent}
-                            onSave={savePrompt}
-                            onCancel={cancelEditing}
-                            saving={saving}
-                            getCategoryIcon={getCategoryIcon}
-                            getCategoryColor={getCategoryColor}
-                        />
-                    ))}
-                </TabsContent>
-
-                <TabsContent value="story-generation" className="space-y-4">
-                    {prompts.filter(p => p.category === 'story-generation').map((prompt) => (
-                        <PromptCard
-                            key={prompt.id}
-                            prompt={prompt}
-                            onEdit={startEditing}
-                            onToggleActive={togglePromptActive}
-                            isEditing={editingPrompt?.id === prompt.id}
-                            editableContent={editableContent}
-                            onContentChange={setEditableContent}
-                            onSave={savePrompt}
-                            onCancel={cancelEditing}
-                            saving={saving}
-                            getCategoryIcon={getCategoryIcon}
-                            getCategoryColor={getCategoryColor}
-                        />
-                    ))}
-                </TabsContent>
-
-                <TabsContent value="custom" className="space-y-4">
-                    {prompts.filter(p => p.category === 'custom').map((prompt) => (
-                        <PromptCard
-                            key={prompt.id}
-                            prompt={prompt}
-                            onEdit={startEditing}
-                            onToggleActive={togglePromptActive}
-                            isEditing={editingPrompt?.id === prompt.id}
-                            editableContent={editableContent}
-                            onContentChange={setEditableContent}
-                            onSave={savePrompt}
-                            onCancel={cancelEditing}
-                            saving={saving}
-                            getCategoryIcon={getCategoryIcon}
-                            getCategoryColor={getCategoryColor}
-                        />
-                    ))}
-                </TabsContent>
-            </Tabs>
         </div>
     );
 };
@@ -545,7 +529,7 @@ const PromptCard: React.FC<PromptCardProps> = ({
                             placeholder="Enter your system prompt content..."
                         />
                         <div className="flex items-center gap-2">
-                            <Button onClick={onSave} disabled={saving}>
+                            <Button variant="outline" size="sm" onClick={onSave} disabled={saving}>
                                 {saving ? (
                                     <>
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -558,7 +542,7 @@ const PromptCard: React.FC<PromptCardProps> = ({
                                     </>
                                 )}
                             </Button>
-                            <Button variant="outline" onClick={onCancel}>
+                            <Button variant="outline" size="sm" onClick={onCancel}>
                                 Cancel
                             </Button>
                         </div>

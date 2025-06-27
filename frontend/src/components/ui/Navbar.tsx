@@ -17,19 +17,19 @@ export default function Navbar() {
         </div>
         {
           authState.status === AuthStatus.UNAUTHENTICATED && <div className="flex space-x-2">
-            <Button variant="ghost" asChild>
+            <Button variant="outline" size="sm" asChild>
               <Link to="/authentication?mode=login" className="text-gray-200 hover:text-white">
                 Log in
               </Link>
             </Button>
-            <Button className="bg-gradient-to-r from-purple-500 via-violet-500 to-pink-500 text-white hover:opacity-90" asChild>
+            <Button variant="outline" size="sm" className="bg-indigo-500/10 border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20" asChild>
               <Link to="/authentication?mode=sign-up">Sign up</Link>
             </Button>
           </div>
         }
         {
           authState.status === AuthStatus.AUTHENTICATED && <div className="flex space-x-2">
-            <Button variant="outline" asChild>
+            <Button variant="outline" size="sm" asChild>
               <Link to="/dashboard" className="text-gray-200 hover:text-white">Dashboard</Link>
             </Button>
           </div>

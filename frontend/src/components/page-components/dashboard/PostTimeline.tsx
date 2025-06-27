@@ -57,6 +57,7 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
     const [showEditModal, setShowEditModal] = useState(false);
     const [isEditingScript, setIsEditingScript] = useState(false);
     const [script, setScript] = useState(post.script || '');
+    const [showFullScript, setShowFullScript] = useState(false);
     
     useEffect(() => {
         console.log('Post Analytics Data:', {
@@ -65,6 +66,12 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
             viewDistPoints: post.analytics?.graphs?.viewDistribution?.points
         });
     }, [post.analytics]);
+
+    // Function to truncate script text
+    const truncateScript = (text: string, maxLength: number = 100) => {
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength) + '...';
+    };
 
     const handleDelete = () => {
         if (post.id) {
@@ -237,7 +244,7 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
 
             {/* Content card */}
             <div className="flex-1 space-y-4">
-                <div className="bg-neutral-900/50 rounded-lg p-4 hover:bg-neutral-900/70 transition-all">
+                <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4 hover:bg-neutral-700/50 transition-all">
                     <div className="flex flex-col md:flex-row gap-4">
                         <div 
                             className="w-full h-32 md:w-24 md:h-24 rounded-lg flex-shrink-0"
@@ -247,7 +254,7 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                         />
                         <div className="flex flex-col gap-2 flex-1">
                             <div className="flex items-start justify-between">
-                                <h3 className="text-xl font-bold">{post.title}</h3>
+                                <h3 className="text-xl font-bold text-white">{post.title}</h3>
                                 <span className="text-sm text-neutral-400">
                                     {new Date(post.postDate).toLocaleDateString()}
                                 </span>
@@ -288,7 +295,21 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                                     </Button>
                                 </div>
                             ) : (
-                                <p className="mt-2">Script: {post.script}</p>
+                                <div className="mt-2">
+                                    <p className="text-sm text-neutral-300">
+                                        Script: {showFullScript ? post.script : truncateScript(post.script || '')}
+                                    </p>
+                                    {(post.script && post.script.length > 100) && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setShowFullScript(!showFullScript)}
+                                            className="text-xs text-neutral-400 hover:text-neutral-300 mt-1"
+                                        >
+                                            {showFullScript ? 'Show less' : 'Show more'}
+                                        </Button>
+                                    )}
+                                </div>
                             )}
 
                             {/* Song choice */}

@@ -35,13 +35,13 @@ const TopPerformingPosts: React.FC<{ posts: PostData[] }> = ({ posts }) => {
         .slice(0, 5);
 
     return (
-        <div className="bg-neutral-900/50 rounded-lg p-4 text-white">
+        <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4 text-white">
             <div 
                 className="flex items-center justify-between cursor-pointer lg:cursor-default mb-4"
                 onClick={() => setIsExpanded(!isExpanded)}
             >
                 <div className="flex flex-col">
-                    <h2 className="text-lg font-semibold">Ranked Posts</h2>
+                    <h2 className="text-lg font-semibold text-white">Ranked Posts</h2>
                     <p className="text-xs text-neutral-400">Using your last 10 posts</p>
                 </div>
                 <ChevronDown className={`lg:hidden transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
@@ -56,7 +56,7 @@ const TopPerformingPosts: React.FC<{ posts: PostData[] }> = ({ posts }) => {
                             }}
                         />
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{post.title}</p>
+                            <p className="text-sm font-medium truncate text-white">{post.title}</p>
                             <p className="text-xs text-neutral-400">
                                 {new Date(post.postDate).toLocaleDateString()} • {post.analytics?.views?.toLocaleString() || 0} views
                             </p>

@@ -8,6 +8,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, Sparkles, FileText, Users, TrendingUp, Target, Loader2 } from "lucide-react";
 import { useApi } from '../../../contexts/ApiContext';
 import { useNavigate } from 'react-router-dom';
+import { Input } from "../../shadcn/input";
+import { Textarea } from "../../shadcn/textarea";
 
 interface StoryGeneratorModalProps {
     isOpen: boolean;
@@ -16,34 +18,40 @@ interface StoryGeneratorModalProps {
 }
 
 interface StorySettings {
-    slideType: 'growth' | 'content-evolution' | 'viral-moments' | 'audience-insights' | 'success-patterns' | 'performance-comparison' | 'roi-demonstration' | 'future-strategy';
+    slideType: 'relationship-drama' | 'personal-growth' | 'celebrity-story' | 'life-transformation' | 'social-commentary' | 'humorous-tale' | 'inspirational-journey' | 'drama-series';
     targetAudience: 'personal' | 'clients' | 'stakeholders' | 'team';
     tone: 'professional' | 'casual' | 'inspirational';
     focusAreas: string[];
     slideCount: number;
     selectedPostIds: string[];
+    storyConcept: string;
+    // Image customization options
+    imageStyle: 'realistic' | 'cartoon' | 'anime' | 'minimalist' | '3d-render' | 'watercolor' | 'digital-art';
+    aspectRatio: '16:9' | '4:3' | '1:1' | '9:16' | '3:2';
+    characterStyle: string;
+    colorScheme: 'warm' | 'cool' | 'neutral' | 'vibrant' | 'monochrome';
 }
 
 const slideTypeOptions = [
-    { value: 'growth', label: 'Growth Story', icon: TrendingUp, description: 'Journey from starting point to current success' },
-    { value: 'content-evolution', label: 'Content Evolution', icon: FileText, description: 'How content strategy has evolved over time' },
-    { value: 'viral-moments', label: 'Viral Moments', icon: Sparkles, description: 'Analysis of breakthrough content and its impact' },
-    { value: 'audience-insights', label: 'Audience Insights', icon: Users, description: 'Deep dive into audience demographics and behavior' },
-    { value: 'success-patterns', label: 'Success Patterns', icon: Target, description: 'Data-backed formulas for content success' },
-    { value: 'performance-comparison', label: 'Performance Comparison', icon: TrendingUp, description: 'Before/after analysis of strategy changes' },
-    { value: 'roi-demonstration', label: 'ROI Demonstration', icon: Target, description: 'Business impact of social media efforts' },
-    { value: 'future-strategy', label: 'Future Strategy', icon: Sparkles, description: 'Data-driven recommendations for growth' }
+    { value: 'relationship-drama', label: 'Relationship Drama', icon: TrendingUp, description: 'Love, heartbreak, and relationship struggles' },
+    { value: 'personal-growth', label: 'Personal Growth', icon: FileText, description: 'Self-improvement and life lessons' },
+    { value: 'celebrity-story', label: 'Celebrity Story', icon: Sparkles, description: 'Famous people and their dramatic moments' },
+    { value: 'life-transformation', label: 'Life Transformation', icon: Users, description: 'Before and after life changes' },
+    { value: 'social-commentary', label: 'Social Commentary', icon: Target, description: 'Commentary on society and trends' },
+    { value: 'humorous-tale', label: 'Humorous Tale', icon: TrendingUp, description: 'Funny and entertaining stories' },
+    { value: 'inspirational-journey', label: 'Inspirational Journey', icon: Target, description: 'Motivational and uplifting stories' },
+    { value: 'drama-series', label: 'Drama Series', icon: Sparkles, description: 'Multi-part dramatic storytelling' }
 ];
 
 const focusAreaOptions = [
-    'Growth & Followers',
-    'Engagement Rate',
-    'Content Performance',
-    'Audience Retention',
-    'Revenue Impact',
-    'Brand Awareness',
-    'Viral Content',
-    'Content Strategy'
+    'Character Development',
+    'Emotional Journey',
+    'Plot Twists',
+    'Visual Storytelling',
+    'Engagement Hooks',
+    'Narrative Flow',
+    'Character Relationships',
+    'Story Arc'
 ];
 
 export const StoryGeneratorModal: React.FC<StoryGeneratorModalProps> = ({ isOpen, onClose, posts }) => {
@@ -56,12 +64,17 @@ export const StoryGeneratorModal: React.FC<StoryGeneratorModalProps> = ({ isOpen
     const navigate = useNavigate();
     
     const [settings, setSettings] = useState<StorySettings>({
-        slideType: 'growth',
-        targetAudience: 'clients',
-        tone: 'professional',
-        focusAreas: ['Growth & Followers', 'Content Performance'],
+        slideType: 'relationship-drama',
+        targetAudience: 'personal',
+        tone: 'casual',
+        focusAreas: ['Character Development', 'Emotional Journey'],
         slideCount: 6,
-        selectedPostIds: posts.slice(-5).map(p => p.id || '') // Default to last 5 posts
+        selectedPostIds: posts.slice(-5).map(p => p.id || ''), // Default to last 5 posts
+        storyConcept: '',
+        imageStyle: 'realistic',
+        aspectRatio: '9:16',
+        characterStyle: '',
+        colorScheme: 'warm'
     });
 
     const steps = [
@@ -124,7 +137,12 @@ export const StoryGeneratorModal: React.FC<StoryGeneratorModalProps> = ({ isOpen
                     targetAudience: settings.targetAudience,
                     tone: settings.tone,
                     focusAreas: settings.focusAreas,
-                    slideCount: settings.slideCount
+                    slideCount: settings.slideCount,
+                    storyConcept: settings.storyConcept,
+                    imageStyle: settings.imageStyle,
+                    aspectRatio: settings.aspectRatio,
+                    characterStyle: settings.characterStyle,
+                    colorScheme: settings.colorScheme
                 })
             });
 
@@ -267,6 +285,20 @@ export const StoryGeneratorModal: React.FC<StoryGeneratorModalProps> = ({ isOpen
                                                 </Select>
                                             </div>
 
+                                            {/* Story Concept */}
+                                            <div className="space-y-3">
+                                                <label className="text-sm font-medium text-white">Story Concept (Optional)</label>
+                                                <Textarea
+                                                    value={settings.storyConcept}
+                                                    onChange={(e) => setSettings(prev => ({ ...prev, storyConcept: e.target.value }))}
+                                                    className="bg-neutral-900 border-neutral-700 text-white min-h-[100px]"
+                                                    placeholder="Describe your story idea... e.g., 'A woman gets heartbroken by her boyfriend but finds Nadeen and transforms her life' or 'Elon Musk gets upset about Trump drama but discovers Nadeen and finds happiness'"
+                                                />
+                                                <p className="text-xs text-neutral-400">
+                                                    Be specific about characters, plot points, and the overall narrative you want to create
+                                                </p>
+                                            </div>
+
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div className="space-y-3">
                                                     <label className="text-sm font-medium text-white">Target Audience</label>
@@ -310,7 +342,7 @@ export const StoryGeneratorModal: React.FC<StoryGeneratorModalProps> = ({ isOpen
                                         <div className="space-y-6">
                                             <div>
                                                 <h3 className="text-xl font-bold mb-2">Configure Your Story</h3>
-                                                <p className="text-neutral-400">Customize the focus areas and slide count</p>
+                                                <p className="text-neutral-400">Customize the focus areas, slide count, and image generation preferences</p>
                                             </div>
 
                                             <div className="space-y-4">
@@ -345,6 +377,82 @@ export const StoryGeneratorModal: React.FC<StoryGeneratorModalProps> = ({ isOpen
                                                             <SelectItem value="10">10 slides</SelectItem>
                                                         </SelectContent>
                                                     </Select>
+                                                </div>
+
+                                                {/* Image Customization Section */}
+                                                <div className="border-t border-neutral-700 pt-4">
+                                                    <h4 className="text-sm font-medium text-white mb-4">Image Generation Preferences</h4>
+                                                    
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <div className="space-y-3">
+                                                            <label className="text-sm font-medium text-white">Visual Style</label>
+                                                            <Select 
+                                                                value={settings.imageStyle} 
+                                                                onValueChange={(value: any) => setSettings(prev => ({ ...prev, imageStyle: value }))}
+                                                            >
+                                                                <SelectTrigger className="bg-neutral-900 border-neutral-700">
+                                                                    <SelectValue />
+                                                                </SelectTrigger>
+                                                                <SelectContent className="bg-neutral-900 border-neutral-700">
+                                                                    <SelectItem value="realistic">Realistic</SelectItem>
+                                                                    <SelectItem value="cartoon">Cartoon</SelectItem>
+                                                                    <SelectItem value="anime">Anime</SelectItem>
+                                                                    <SelectItem value="minimalist">Minimalist</SelectItem>
+                                                                    <SelectItem value="3d-render">3D Render</SelectItem>
+                                                                    <SelectItem value="watercolor">Watercolor</SelectItem>
+                                                                    <SelectItem value="digital-art">Digital Art</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+
+                                                        <div className="space-y-3">
+                                                            <label className="text-sm font-medium text-white">Aspect Ratio</label>
+                                                            <Select 
+                                                                value={settings.aspectRatio} 
+                                                                onValueChange={(value: any) => setSettings(prev => ({ ...prev, aspectRatio: value }))}
+                                                            >
+                                                                <SelectTrigger className="bg-neutral-900 border-neutral-700">
+                                                                    <SelectValue />
+                                                                </SelectTrigger>
+                                                                <SelectContent className="bg-neutral-900 border-neutral-700">
+                                                                    <SelectItem value="16:9">16:9 (Widescreen)</SelectItem>
+                                                                    <SelectItem value="4:3">4:3 (Standard)</SelectItem>
+                                                                    <SelectItem value="1:1">1:1 (Square)</SelectItem>
+                                                                    <SelectItem value="9:16">9:16 (Portrait)</SelectItem>
+                                                                    <SelectItem value="3:2">3:2 (Photo)</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+
+                                                        <div className="space-y-3">
+                                                            <label className="text-sm font-medium text-white">Color Scheme</label>
+                                                            <Select 
+                                                                value={settings.colorScheme} 
+                                                                onValueChange={(value: any) => setSettings(prev => ({ ...prev, colorScheme: value }))}
+                                                            >
+                                                                <SelectTrigger className="bg-neutral-900 border-neutral-700">
+                                                                    <SelectValue />
+                                                                </SelectTrigger>
+                                                                <SelectContent className="bg-neutral-900 border-neutral-700">
+                                                                    <SelectItem value="warm">Warm</SelectItem>
+                                                                    <SelectItem value="cool">Cool</SelectItem>
+                                                                    <SelectItem value="neutral">Neutral</SelectItem>
+                                                                    <SelectItem value="vibrant">Vibrant</SelectItem>
+                                                                    <SelectItem value="monochrome">Monochrome</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+
+                                                        <div className="space-y-3">
+                                                            <label className="text-sm font-medium text-white">Character Style (Optional)</label>
+                                                            <Input
+                                                                value={settings.characterStyle}
+                                                                onChange={(e) => setSettings(prev => ({ ...prev, characterStyle: e.target.value }))}
+                                                                className="bg-neutral-900 border-neutral-700 text-white"
+                                                                placeholder="e.g., looks like Emma Stone, cartoon character"
+                                                            />
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -388,6 +496,7 @@ export const StoryGeneratorModal: React.FC<StoryGeneratorModalProps> = ({ isOpen
                                 <Button 
                                     type="button" 
                                     variant="outline" 
+                                    size="sm"
                                     onClick={step === 0 ? onClose : handleBack}
                                     disabled={isSubmitting}
                                 >
@@ -395,8 +504,10 @@ export const StoryGeneratorModal: React.FC<StoryGeneratorModalProps> = ({ isOpen
                                 </Button>
                                 <Button
                                     type="button"
+                                    variant="outline"
+                                    size="sm"
                                     onClick={step === totalSteps - 1 ? handleGenerateStory : handleNext}
-                                    className="bg-indigo-500 hover:bg-indigo-600"
+                                    className="bg-indigo-500/10 border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20"
                                     disabled={isSubmitting}
                                 >
                                     {isSubmitting ? (

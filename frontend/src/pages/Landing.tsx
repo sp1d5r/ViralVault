@@ -30,7 +30,9 @@ export const Landing: React.FC = () => {
             Make data-driven decisions that drive engagement.
           </p>
           <Button 
-            className="dark:text-white bg-indigo-500 hover:bg-indigo-600"
+            variant="outline"
+            size="sm"
+            className="bg-indigo-500/10 border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20"
             onClick={() => {
               window.location.href = '/dashboard';
             }}
@@ -149,7 +151,7 @@ export const Landing: React.FC = () => {
               Track every metric that matters. From views and engagement to audience retention 
               and growth patterns. Understand what works and why.
               <br/>
-              <Button>Start Tracking</Button>
+              <Button variant="outline" size="sm" className="bg-indigo-500/10 border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20">Start Tracking</Button>
             </p>
         </div>
       </div>
@@ -162,7 +164,7 @@ export const Landing: React.FC = () => {
               Get actionable insights on the best times to post, optimal video length, 
               and content themes that resonate with your audience.
               <br/>
-              <Button>Learn More</Button>
+              <Button variant="outline" size="sm" className="bg-indigo-500/10 border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20">Learn More</Button>
             </p>
         </div>
         <div className="w-full md:w-1/2 mb-8 md:mb-0">
@@ -185,7 +187,7 @@ export const Landing: React.FC = () => {
                 </div>
             </h1>
             <p className="text-white mb-1">Turn your content into data-driven success</p>
-            <Button variant="secondary">Get started for free</Button>
+            <Button variant="outline" size="sm" className="bg-indigo-500/10 border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20">Get started for free</Button>
         </div>
       </div>
       </div>
