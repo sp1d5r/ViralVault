@@ -181,7 +181,7 @@ export const StoryPage: React.FC = () => {
             {/* Header */}
             <div className="border-b border-neutral-700 bg-neutral-900/50 backdrop-blur-sm">
                 <div className="container mx-auto px-4 py-4">
-                    <Breadcrumb className="text-white mb-4">
+                    <Breadcrumb className="text-white mb-4 hidden md:block">
                         <BreadcrumbList>
                             <BreadcrumbItem>
                                 <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
@@ -197,45 +197,45 @@ export const StoryPage: React.FC = () => {
                         </BreadcrumbList>
                     </Breadcrumb>
 
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div>
-                            <h1 className="text-2xl font-bold text-white">{story.generatedStory.title}</h1>
-                            <div className="flex items-center gap-2 mt-2">
-                                <Badge variant="secondary" className="bg-indigo-500/20 text-indigo-300">
+                            <h1 className="text-xl sm:text-2xl font-bold text-white">{story.generatedStory.title}</h1>
+                            <div className="flex flex-wrap items-center gap-2 mt-2">
+                                <Badge variant="secondary" className="bg-indigo-500/20 text-indigo-300 text-xs">
                                     {story.slideType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                                 </Badge>
-                                <Badge variant="outline" className="border-neutral-600 text-neutral-300">
+                                <Badge variant="outline" className="border-neutral-600 text-neutral-300 text-xs">
                                     {story.targetAudience}
                                 </Badge>
-                                <Badge variant="outline" className="border-neutral-600 text-neutral-300">
+                                <Badge variant="outline" className="border-neutral-600 text-neutral-300 text-xs">
                                     {story.tone}
                                 </Badge>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             <Button 
                                 variant="outline" 
                                 size="sm"
                                 onClick={handleConvertToPosts}
-                                className="bg-green-500/10 border-green-500/20 text-green-300 hover:bg-green-500/20"
+                                className="bg-green-500/10 border-green-500/20 text-green-300 hover:bg-green-500/20 text-xs"
                             >
-                                <Plus className="mr-2 h-4 w-4" />
+                                <Plus className="mr-2 h-3 w-3" />
                                 Convert to Posts
                             </Button>
                             <Button 
                                 variant="outline" 
                                 size="sm"
-                                className="bg-neutral-500/10 border-neutral-500/20 text-neutral-300 hover:bg-neutral-500/20"
+                                className="bg-neutral-500/10 border-neutral-500/20 text-neutral-300 hover:bg-neutral-500/20 text-xs"
                             >
-                                <Download className="mr-2 h-4 w-4" />
+                                <Download className="mr-2 h-3 w-3" />
                                 Export
                             </Button>
                             <Button 
                                 variant="outline" 
                                 size="sm"
-                                className="bg-neutral-500/10 border-neutral-500/20 text-neutral-300 hover:bg-neutral-500/20"
+                                className="bg-neutral-500/10 border-neutral-500/20 text-neutral-300 hover:bg-neutral-500/20 text-xs"
                             >
-                                <Share2 className="mr-2 h-4 w-4" />
+                                <Share2 className="mr-2 h-3 w-3" />
                                 Share
                             </Button>
                         </div>
@@ -244,12 +244,12 @@ export const StoryPage: React.FC = () => {
             </div>
 
             {/* Main Content */}
-            <div className="container mx-auto px-4 py-8">
-                <div className="flex gap-8">
+            <div className="container mx-auto px-4 py-4 sm:py-8">
+                <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
                     {/* Slide Navigation */}
-                    <div className="w-64 space-y-4">
+                    <div className="w-full lg:w-64 space-y-4">
                         <h3 className="text-lg font-semibold text-white">Slides</h3>
-                        <div className="space-y-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2 lg:space-y-2">
                             {story.generatedStory.slides.map((slide, index) => (
                                 <button
                                     key={index}
@@ -281,14 +281,14 @@ export const StoryPage: React.FC = () => {
 
                     {/* Main Slide Display */}
                     <div className="flex-1">
-                        <div className="bg-neutral-800/50 rounded-xl p-8 border border-neutral-700 min-h-[600px]">
+                        <div className="bg-neutral-800/50 rounded-xl p-4 sm:p-8 border border-neutral-700 min-h-[400px] sm:min-h-[600px]">
                             {/* Slide Header */}
-                            <div className="flex items-center justify-between mb-6">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                                 <div>
-                                    <Badge variant="outline" className="border-neutral-600 text-neutral-300 mb-2">
+                                    <Badge variant="outline" className="border-neutral-600 text-neutral-300 mb-2 text-xs">
                                         Slide {currentSlide + 1} of {story.generatedStory.slides.length}
                                     </Badge>
-                                    <h2 className="text-2xl font-bold text-white">{currentSlideData.title}</h2>
+                                    <h2 className="text-lg sm:text-2xl font-bold text-white">{currentSlideData.title}</h2>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Button
@@ -313,16 +313,16 @@ export const StoryPage: React.FC = () => {
                             </div>
 
                             {/* Slide Content */}
-                            <div className="space-y-6">
+                            <div className="space-y-4 sm:space-y-6">
                                 <div className="prose prose-invert max-w-none">
-                                    <p className="text-lg text-neutral-200 leading-relaxed">
+                                    <p className="text-base sm:text-lg text-neutral-200 leading-relaxed">
                                         {currentSlideData.content}
                                     </p>
                                 </div>
 
                                 {/* Image Prompt */}
-                                <div className="border-t border-neutral-700 pt-6">
-                                    <div className="flex items-center justify-between mb-3">
+                                <div className="border-t border-neutral-700 pt-4 sm:pt-6">
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
                                         <h4 className="text-sm font-semibold text-neutral-300">AI Image Prompt</h4>
                                         <Button
                                             variant="outline"
@@ -334,13 +334,13 @@ export const StoryPage: React.FC = () => {
                                                     description: "Ready to paste in your image generator",
                                                 });
                                             }}
-                                            className="bg-indigo-500/10 border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20"
+                                            className="bg-indigo-500/10 border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20 w-full sm:w-auto"
                                         >
                                             Copy Prompt
                                         </Button>
                                     </div>
-                                    <div className="p-4 bg-neutral-700/30 rounded-lg border border-neutral-600">
-                                        <p className="text-sm text-neutral-200 font-mono leading-relaxed">
+                                    <div className="p-3 sm:p-4 bg-neutral-700/30 rounded-lg border border-neutral-600">
+                                        <p className="text-xs sm:text-sm text-neutral-200 font-mono leading-relaxed">
                                             {currentSlideData.imagePrompt}
                                         </p>
                                     </div>
@@ -353,7 +353,7 @@ export const StoryPage: React.FC = () => {
                                 {currentSlideData.dataPoints && currentSlideData.dataPoints.length > 0 && (
                                     <div>
                                         <h4 className="text-sm font-semibold text-neutral-300 mb-3">Key Data Points</h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             {currentSlideData.dataPoints.map((point, index) => (
                                                 <div key={index} className="p-3 bg-neutral-700/30 rounded-lg">
                                                     <p className="text-sm text-neutral-200">{point}</p>
@@ -381,17 +381,17 @@ export const StoryPage: React.FC = () => {
                         </div>
 
                         {/* Key Insights & Next Steps */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-8">
                             <Card className="bg-neutral-800/50 border-neutral-700">
                                 <CardHeader>
-                                    <CardTitle className="text-white">Key Insights</CardTitle>
+                                    <CardTitle className="text-white text-sm sm:text-base">Key Insights</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-2">
                                         {story.generatedStory.keyInsights.map((insight, index) => (
                                             <div key={index} className="flex items-start gap-3">
                                                 <div className="w-2 h-2 bg-green-400 rounded-full mt-2 flex-shrink-0"></div>
-                                                <p className="text-sm text-neutral-300">{insight}</p>
+                                                <p className="text-xs sm:text-sm text-neutral-300">{insight}</p>
                                             </div>
                                         ))}
                                     </div>
@@ -400,14 +400,14 @@ export const StoryPage: React.FC = () => {
 
                             <Card className="bg-neutral-800/50 border-neutral-700">
                                 <CardHeader>
-                                    <CardTitle className="text-white">Next Steps</CardTitle>
+                                    <CardTitle className="text-white text-sm sm:text-base">Next Steps</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-2">
                                         {story.generatedStory.nextSteps.map((step, index) => (
                                             <div key={index} className="flex items-start gap-3">
                                                 <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
-                                                <p className="text-sm text-neutral-300">{step}</p>
+                                                <p className="text-xs sm:text-sm text-neutral-300">{step}</p>
                                             </div>
                                         ))}
                                     </div>
