@@ -20,14 +20,17 @@ export const authenticateToken = async (
     const authHeader = req.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
+      console.log('Auth middleware: No Bearer token found in header');
       res.status(401).json({ error: 'No token provided' });
       return;
     }
 
     const token = authHeader.split('Bearer ')[1];
+    console.log('Auth middleware: Token received, length:', token.length);
 
     try {
       const decodedToken = await auth.verifyIdToken(token);
+      console.log('Auth middleware: Token verified successfully for user:', decodedToken.uid);
       
       req.user = {
         uid: decodedToken.uid,
@@ -37,6 +40,7 @@ export const authenticateToken = async (
 
       next();
     } catch (error) {
+      console.error('Auth middleware: Token verification failed:', error);
       res.status(403).json({ error: 'Invalid token' });
       return;
     }
