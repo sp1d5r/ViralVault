@@ -103,7 +103,7 @@ const OnboardingFlow: React.FC = () => {
   ];
 
   function handleDataChange(newData: Partial<UserProfile>) {
-    setData(prev => ({ ...prev, ...newData }));
+    setData((prev: UserProfile) => ({ ...prev, ...newData }));
     // Clear errors for changed fields
     const updatedErrors = { ...errors };
     Object.keys(newData).forEach(key => {

@@ -32,26 +32,26 @@ export const ChatPage: React.FC = () => {
             FirebaseDatabaseService.getDocument<AnalysisDocument>(
                 'viral-vault-chats',
                 id,
-                (doc) => {
+                (doc: AnalysisDocument | null) => {
                     if (doc) {
                         setAnalysis(doc);
                         setPosts([]);
                         console.log(doc.postIds);
-                        doc.postIds.forEach(postId => {
+                        doc.postIds.forEach((postId: string) => {
                             FirebaseDatabaseService.getDocument<PostContext>(
                                 'tiktok-posts',
                                 postId,
-                                (post) => {
+                                (post: PostContext | null) => {
                                     if (post) {
                                         setPosts(prev => [...prev, post]);
                                     }
                                 },
-                                (error) => console.error('Error fetching post:', error)
+                                (error: Error) => console.error('Error fetching post:', error)
                             );
                         });
                     }
                 },
-                (error) => console.error('Error fetching analysis:', error)
+                (error: Error) => console.error('Error fetching analysis:', error)
             );
         }
     }, [id]);

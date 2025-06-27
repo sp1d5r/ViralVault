@@ -7,8 +7,10 @@ applications:
           commands:
             - npm install -g pnpm
             - pnpm install
+            - pnpm run build
         build:
           commands:
+            - cd frontend
             - pnpm run build
       artifacts:
         baseDirectory: frontend
@@ -18,5 +20,6 @@ applications:
         paths:
           - node_modules/**/*
           - frontend/node_modules/**/*
+          - shared/node_modules/**/*
           - .pnpm-store/**/*
     appRoot: frontend 

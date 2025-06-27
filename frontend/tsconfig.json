@@ -21,11 +21,11 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "common": ["../common/src"]
+      "shared": ["../shared/src"]
     }
   },
   "include": [
     "src",
-    "../common/src"
+    "../shared/src"
   ]
 }

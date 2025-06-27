@@ -33,7 +33,7 @@ export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children })
           unsubscribe = FirebaseDatabaseService.listenToDocument<UserProfile>(
             'users',
             authState.user?.uid || '',
-            (data) => {
+            (data: UserProfile | null) => {
               if (data) {
                 setProfile(data);
                 setStatus(ProfileStatus.COMPLETE);
@@ -42,7 +42,7 @@ export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children })
                 setStatus(ProfileStatus.NEEDS_ONBOARDING);
               }
             },
-            (error) => {
+            (error: Error) => {
               console.error('Error loading profile:', error);
               setStatus(ProfileStatus.NO_PROFILE);
             }
@@ -81,7 +81,7 @@ export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children })
         authState.user!.uid,
         updateData,
         () => resolve(),
-        (error) => reject(error)
+        (error: Error) => reject(error)
       );
     });
   };
@@ -106,7 +106,7 @@ export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children })
           setStatus(ProfileStatus.COMPLETE);
           resolve();
         },
-        (error) => reject(error)
+        (error: Error) => reject(error)
       );
     });
   };
