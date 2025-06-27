@@ -16,6 +16,7 @@ import { ProfileProvider } from './contexts/ProfileProvider';
 import Onboarding from './pages/Onboarding';
 import { Toaster } from './components/shadcn/toaster';
 import { ChatPage } from './pages/ChatPage';
+import { StoryPage } from './pages/StoryPage';
 
 // Example components for different routes
 const About = () => <ScrollableLayout><h2>About Page</h2></ScrollableLayout>;
@@ -49,6 +50,9 @@ function App() {
 
                   {/* Chat Page */}
                   <Route path="/support-chat" element={<ChatPage />} /> 
+
+                  {/* Story Page */}
+                  <Route path="/story/:id" element={<StoryPage />} />
 
                   {/* Main Page */}
                   <Route path="/dashboard" element={<Dashboard />} />
