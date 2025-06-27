@@ -1,4 +1,4 @@
-import { ClaudeService , ContextSettings, PostContext } from 'shared';
+import { ClaudeService , ContextSettings, PostContext, SystemPromptService } from 'shared';
 import { z } from 'zod';
 
 // Define the response schema
@@ -14,26 +14,32 @@ export const analyzePostsData = async (
             apiKey: process.env.CLAUDE_API_KEY as string,
         });
 
+        const systemPrompt = SystemPromptService.getFullSystemPrompt();
+
         const response = await claude.query(
             [{
                 role: "user",
                 content: [{
                     type: "text",
                     text: `
-                        Analyzing TikTok post data with the following context:
-                        ${JSON.stringify(context, null, 2)}
+${systemPrompt}
 
-                        Settings used for this analysis:
-                        ${JSON.stringify(contextSettings, null, 2)}
+## Current Analysis Request
 
-                        Question: ${question}
+**User Question:** ${question}
 
-                        Please provide a detailed analysis based on the available data.
+**Available Data Context:**
+${JSON.stringify(context, null, 2)}
+
+**Analysis Settings:**
+${JSON.stringify(contextSettings, null, 2)}
+
+Please provide a detailed, actionable analysis based on the available data. Focus on insights that can help the creator improve their content strategy and achieve their business goals.
                     `
                 }]
             }],
             analysisResponseSchema,
-            "You are a TikTok performance analysis expert. Analyze the data and provide specific, actionable insights."
+            "You are a TikTok performance analysis expert working with ViralVault. Analyze the data and provide specific, actionable insights that help creators grow their business."
         );
 
         return response;
