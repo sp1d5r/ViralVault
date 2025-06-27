@@ -10,7 +10,6 @@ applications:
             - pnpm run build
         build:
           commands:
-            - cd frontend
             - pnpm run build
       artifacts:
         baseDirectory: frontend
