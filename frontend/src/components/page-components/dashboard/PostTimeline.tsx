@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FirebaseDatabaseService } from 'shared';
 import { Skeleton } from '../../shadcn/skeleton';
-import { Edit, ChartBar, FileText, Share2, Heart, MessageCircle, Play, Star, Clock, Trash2, Save, UserPlus, Scroll } from 'lucide-react';
+import { Edit, ChartBar, FileText, Share2, Heart, MessageCircle, Play, Star, Clock, Trash2, Save, UserPlus, Scroll, BookOpen } from 'lucide-react';
 import { Button } from '../../shadcn/button';
 import { PostData, Analytics } from 'shared';
 import { 
@@ -19,6 +19,7 @@ import { EditPostModal } from './EditPostModal';
 import { parseTimeToSeconds, formatSecondsToTime } from '../../../lib/utils';
 import { Input } from '../../shadcn/input';
 import { GraphContainer } from './ChartContainer';
+import { useNavigate } from 'react-router-dom';
 
 // Add this type at the top of the file
 type GraphType = keyof NonNullable<Analytics['graphs']>;
@@ -58,7 +59,11 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
     const [isEditingScript, setIsEditingScript] = useState(false);
     const [script, setScript] = useState(post.script || '');
     const [showFullScript, setShowFullScript] = useState(false);
+    const navigate = useNavigate();
     
+    // Check if this post was generated from a story
+    const isStoryGenerated = post.tags.includes('story-generated') && post.storyId;
+
     useEffect(() => {
         console.log('Post Analytics Data:', {
             hasGraphs: !!post.analytics?.graphs,
@@ -254,7 +259,17 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                         />
                         <div className="flex flex-col gap-2 flex-1">
                             <div className="flex items-start justify-between">
-                                <h3 className="text-xl font-bold text-white">{post.title}</h3>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-xl font-bold text-white">{post.title}</h3>
+                                    {isStoryGenerated && (
+                                        <span 
+                                            className="px-2 py-1 rounded-full text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
+                                            title="Generated from Story"
+                                        >
+                                            📖 Story
+                                        </span>
+                                    )}
+                                </div>
                                 <span className="text-sm text-neutral-400">
                                     {new Date(post.postDate).toLocaleDateString()}
                                 </span>
@@ -374,6 +389,17 @@ const PostTimelineItem: React.FC<{ post: PostData; onDelete: (id: string) => voi
                                 >
                                     <FileText size={16} />
                                 </Button>
+                                {isStoryGenerated && (
+                                    <Button 
+                                        variant="ghost" 
+                                        size="sm"
+                                        onClick={() => navigate(`/story/${post.storyId}`)}
+                                        className="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10"
+                                        title="View Original Story"
+                                    >
+                                        <BookOpen size={16} />
+                                    </Button>
+                                )}
                                 <Button 
                                     variant="ghost" 
                                     size="sm"

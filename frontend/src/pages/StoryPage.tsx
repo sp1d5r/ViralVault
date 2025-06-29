@@ -3,10 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/shadcn/card';
 import { Badge } from '../components/shadcn/badge';
-import { ChevronLeft, ChevronRight, Download, Share2, ArrowLeft, Sparkles, Copy, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Share2, ArrowLeft, Sparkles, Copy, Plus, FileText, ExternalLink } from 'lucide-react';
 import { useApi } from '../contexts/ApiContext';
 import { toast } from '../contexts/ToastProvider';
-import { FirebaseDatabaseService } from 'shared';
+import { FirebaseDatabaseService, PostData } from 'shared';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from '../components/shadcn/breadcrumbs';
 
 interface StorySlide {
@@ -48,6 +48,8 @@ export const StoryPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentSlide, setCurrentSlide] = useState(0);
+    const [linkedPosts, setLinkedPosts] = useState<PostData[]>([]);
+    const [loadingPosts, setLoadingPosts] = useState(false);
 
     useEffect(() => {
         const fetchStory = async () => {
@@ -57,6 +59,11 @@ export const StoryPage: React.FC = () => {
                 const response = await fetchWithAuth(`api/stories/${id}`);
                 const data = await response.json();
                 setStory(data);
+                
+                // Fetch linked posts after story is loaded
+                if (data) {
+                    fetchLinkedPosts();
+                }
             } catch (err) {
                 console.error('Error fetching story:', err);
                 setError('Failed to load story');
@@ -67,6 +74,34 @@ export const StoryPage: React.FC = () => {
 
         fetchStory();
     }, [id, fetchWithAuth]);
+
+    const fetchLinkedPosts = async () => {
+        if (!id) return;
+        
+        setLoadingPosts(true);
+        try {
+            // Query posts that have this story ID
+            FirebaseDatabaseService.queryDocuments<PostData>(
+                'tiktok-posts',
+                'storyId',
+                'createdAt',
+                id,
+                (posts) => {
+                    if (posts) {
+                        setLinkedPosts(posts);
+                    }
+                    setLoadingPosts(false);
+                },
+                (error) => {
+                    console.error('Error fetching linked posts:', error);
+                    setLoadingPosts(false);
+                }
+            );
+        } catch (error) {
+            console.error('Error fetching linked posts:', error);
+            setLoadingPosts(false);
+        }
+    };
 
     const nextSlide = () => {
         if (story && currentSlide < story.generatedStory.slides.length - 1) {
@@ -110,6 +145,7 @@ export const StoryPage: React.FC = () => {
                     story.tone,
                     ...story.focusAreas
                 ],
+                storyId: id, // Add the story ID to link back to the original story
                 createdAt: Date.now(),
                 userId: story.userId,
             };
@@ -133,6 +169,9 @@ export const StoryPage: React.FC = () => {
                 title: "Post Created!",
                 description: `Successfully converted story into a single post with ${story.generatedStory.slides.length} slides. Check your posts dashboard.`,
             });
+
+            // Refresh linked posts
+            fetchLinkedPosts();
 
         } catch (error) {
             console.error('Error converting story to post:', error);
@@ -415,6 +454,88 @@ export const StoryPage: React.FC = () => {
                             </Card>
                         </div>
                     </div>
+                </div>
+
+                {/* Linked Posts Section */}
+                <div className="mt-8 sm:mt-12">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-white">Posts Created from This Story</h3>
+                        <Button 
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate('/dashboard')}
+                            className="bg-neutral-500/10 border-neutral-500/20 text-neutral-300 hover:bg-neutral-500/20"
+                        >
+                            <FileText className="mr-2 h-4 w-4" />
+                            View All Posts
+                        </Button>
+                    </div>
+
+                    {loadingPosts ? (
+                        <div className="flex items-center justify-center py-8">
+                            <div className="flex items-center gap-3 text-neutral-400">
+                                <Sparkles className="h-5 w-5 animate-pulse" />
+                                <span>Loading posts...</span>
+                            </div>
+                        </div>
+                    ) : linkedPosts.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {linkedPosts.map((post) => (
+                                <Card key={post.id} className="bg-neutral-800/50 border-neutral-700 hover:bg-neutral-700/50 transition-all">
+                                    <CardHeader className="pb-3">
+                                        <div className="flex items-start justify-between">
+                                            <CardTitle className="text-sm text-white line-clamp-2">{post.title}</CardTitle>
+                                            <Badge 
+                                                variant="outline" 
+                                                className="border-green-500/30 text-green-400 text-xs ml-2 flex-shrink-0"
+                                            >
+                                                {post.status}
+                                            </Badge>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="pt-0">
+                                        <p className="text-xs text-neutral-400 mb-3 line-clamp-2">{post.hook}</p>
+                                        <div className="flex items-center justify-between text-xs text-neutral-500">
+                                            <span>{new Date(post.postDate).toLocaleDateString()}</span>
+                                            <div className="flex items-center gap-2">
+                                                {post.analytics?.views && (
+                                                    <span>{post.analytics.views.toLocaleString()} views</span>
+                                                )}
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm"
+                                                    onClick={() => navigate('/dashboard')}
+                                                    className="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 p-1"
+                                                    title="View in Dashboard"
+                                                >
+                                                    <ExternalLink size={14} />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    ) : (
+                        <Card className="bg-neutral-800/50 border-neutral-700">
+                            <CardContent className="pt-6">
+                                <div className="text-center py-8">
+                                    <FileText className="h-12 w-12 text-neutral-500 mx-auto mb-4" />
+                                    <h4 className="text-lg font-medium text-white mb-2">No Posts Created Yet</h4>
+                                    <p className="text-neutral-400 mb-4">
+                                        Convert this story into posts to see them here
+                                    </p>
+                                    <Button 
+                                        onClick={handleConvertToPosts}
+                                        className="bg-green-500/10 border-green-500/20 text-green-300 hover:bg-green-500/20"
+                                    >
+                                        <Plus className="mr-2 h-4 w-4" />
+                                        Convert to Posts
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
             </div>
         </div>
