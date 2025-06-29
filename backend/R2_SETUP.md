@@ -86,23 +86,20 @@ Authorization: Bearer <token>
 
 ```typescript
 import { R2UploadService } from './lib/r2Upload';
+import { useApi } from './contexts/ApiContext';
 
-const r2Service = new R2UploadService(
-  'http://localhost:3001',
-  () => localStorage.getItem('authToken')
-);
+function MyComponent() {
+  const { fetchWithAuth } = useApi();
+  const r2Service = new R2UploadService(fetchWithAuth);
 
-// Upload a file
-const fileInput = document.getElementById('fileInput') as HTMLInputElement;
-const file = fileInput.files?.[0];
-
-if (file) {
-  try {
-    const { key, url } = await r2Service.uploadFile(file);
-    console.log('File uploaded successfully:', key);
-  } catch (error) {
-    console.error('Upload failed:', error);
-  }
+  const handleUpload = async (file: File) => {
+    try {
+      const { key, url } = await r2Service.uploadFile(file);
+      console.log('File uploaded successfully:', key);
+    } catch (error) {
+      console.error('Upload failed:', error);
+    }
+  };
 }
 ```
 
@@ -112,14 +109,7 @@ if (file) {
 import { R2FileUpload } from './components/ui/R2FileUpload';
 
 function App() {
-  const getAuthToken = () => localStorage.getItem('authToken');
-  
-  return (
-    <R2FileUpload 
-      baseUrl="http://localhost:3001"
-      getAuthToken={getAuthToken}
-    />
-  );
+  return <R2FileUpload />;
 }
 ```
 

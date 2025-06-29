@@ -22,6 +22,7 @@ import analyzeRoutes from './router/analyzeRoutes';
 import storyRoutes from './router/storyRoutes';
 import systemPromptRoutes from './router/systemPromptRoutes';
 import r2Routes from './router/r2Routes';
+import imageGenerationRoutes from './router/imageGenerationRoutes';
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -61,6 +62,7 @@ app.use('/api/analyze', analyzeRoutes);
 app.use('/api/stories', storyRoutes);
 app.use('/api/system-prompts', systemPromptRoutes);
 app.use('/api/r2', r2Routes);
+app.use('/api/images', imageGenerationRoutes);
 
 app.listen(port, () => {
   console.log(`Backend server running at http://localhost:${port}`);

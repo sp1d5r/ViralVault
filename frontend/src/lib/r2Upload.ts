@@ -17,12 +17,10 @@ interface DownloadUrlResponse {
 }
 
 export class R2UploadService {
-  private baseUrl: string;
-  private getAuthToken: () => string | null;
+  private fetchWithAuth: (endpoint: string, options?: RequestInit) => Promise<Response>;
 
-  constructor(baseUrl: string, getAuthToken: () => string | null) {
-    this.baseUrl = baseUrl;
-    this.getAuthToken = getAuthToken;
+  constructor(fetchWithAuth: (endpoint: string, options?: RequestInit) => Promise<Response>) {
+    this.fetchWithAuth = fetchWithAuth;
   }
 
   /**
@@ -58,26 +56,13 @@ export class R2UploadService {
    * Get a pre-signed URL for uploading
    */
   private async getUploadUrl(fileName: string, contentType: string): Promise<UploadUrlResponse> {
-    const token = this.getAuthToken();
-    if (!token) {
-      throw new Error('No authentication token');
-    }
-
-    const response = await fetch(`${this.baseUrl}/api/r2/upload-url`, {
+    const response = await this.fetchWithAuth('api/r2/upload-url', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
       body: JSON.stringify({
         fileName,
         contentType,
       }),
     });
-
-    if (!response.ok) {
-      throw new Error(`Failed to get upload URL: ${response.statusText}`);
-    }
 
     return response.json();
   }
@@ -86,21 +71,9 @@ export class R2UploadService {
    * Get a pre-signed URL for downloading/viewing a file
    */
   async getDownloadUrl(key: string): Promise<string> {
-    const token = this.getAuthToken();
-    if (!token) {
-      throw new Error('No authentication token');
-    }
-
-    const response = await fetch(`${this.baseUrl}/api/r2/download-url/${encodeURIComponent(key)}`, {
+    const response = await this.fetchWithAuth(`api/r2/download-url/${encodeURIComponent(key)}`, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
     });
-
-    if (!response.ok) {
-      throw new Error(`Failed to get download URL: ${response.statusText}`);
-    }
 
     const result: DownloadUrlResponse = await response.json();
     return result.data.url;
@@ -110,63 +83,38 @@ export class R2UploadService {
    * Delete a file
    */
   async deleteFile(key: string): Promise<void> {
-    const token = this.getAuthToken();
-    if (!token) {
-      throw new Error('No authentication token');
-    }
-
-    const response = await fetch(`${this.baseUrl}/api/r2/files/${encodeURIComponent(key)}`, {
+    await this.fetchWithAuth(`api/r2/files/${encodeURIComponent(key)}`, {
       method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
     });
-
-    if (!response.ok) {
-      throw new Error(`Failed to delete file: ${response.statusText}`);
-    }
   }
 
   /**
    * List user's files
    */
   async listFiles(prefix?: string): Promise<string[]> {
-    const token = this.getAuthToken();
-    if (!token) {
-      throw new Error('No authentication token');
-    }
-
-    const url = new URL(`${this.baseUrl}/api/r2/files`);
+    const url = new URL('api/r2/files', 'http://dummy.com'); // Dummy base for URL construction
     if (prefix) {
       url.searchParams.set('prefix', prefix);
     }
 
-    const response = await fetch(url.toString(), {
+    const response = await this.fetchWithAuth(url.pathname + url.search, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
     });
-
-    if (!response.ok) {
-      throw new Error(`Failed to list files: ${response.statusText}`);
-    }
 
     const result = await response.json();
     return result.data;
   }
 }
 
-// Example usage:
-// const r2Service = new R2UploadService(
-//   'http://localhost:3001',
-//   () => localStorage.getItem('authToken')
-// );
+// Example usage with useApi hook:
+// import { useApi } from '../contexts/ApiContext';
 //
-// // Upload a file
-// const fileInput = document.getElementById('fileInput') as HTMLInputElement;
-// const file = fileInput.files?.[0];
-// if (file) {
-//   const { key, url } = await r2Service.uploadFile(file);
-//   console.log('File uploaded:', key);
+// function MyComponent() {
+//   const { fetchWithAuth } = useApi();
+//   const r2Service = new R2UploadService(fetchWithAuth);
+//
+//   const handleUpload = async (file: File) => {
+//     const { key, url } = await r2Service.uploadFile(file);
+//     console.log('File uploaded:', key);
+//   };
 // } 
