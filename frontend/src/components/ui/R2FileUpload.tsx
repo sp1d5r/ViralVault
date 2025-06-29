@@ -3,19 +3,16 @@ import { Button } from '../shadcn/button';
 import { Input } from '../shadcn/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../shadcn/card';
 import { R2UploadService } from '../../lib/r2Upload';
+import { useApi } from '../../contexts/ApiContext';
 
-interface R2FileUploadProps {
-  baseUrl: string;
-  getAuthToken: () => string | null;
-}
-
-export const R2FileUpload: React.FC<R2FileUploadProps> = ({ baseUrl, getAuthToken }) => {
+export const R2FileUpload: React.FC = () => {
+  const { fetchWithAuth } = useApi();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<Array<{ key: string; url: string }>>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const r2Service = new R2UploadService(baseUrl, getAuthToken);
+  const r2Service = new R2UploadService(fetchWithAuth);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
