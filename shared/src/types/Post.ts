@@ -31,4 +31,5 @@ export interface PostData extends Identifiable {
     userId: string;
     duration?: number;
     analytics?: Analytics;
+    storyId?: string;
 }

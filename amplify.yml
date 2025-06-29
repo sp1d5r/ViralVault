@@ -5,18 +5,17 @@ applications:
         preBuild:
           commands:
             - npm install -g pnpm
-            - cd frontend
             - pnpm install
         build:
           commands:
             - pnpm run build
       artifacts:
-        baseDirectory: frontend/dist
+        baseDirectory: dist
         files:
           - '**/*'
       cache:
         paths:
-          - frontend/node_modules/**/*
-          - shared/node_modules/**/*
+          - node_modules/**/*
+          - ../shared/node_modules/**/*
           - .pnpm-store/**/*
     appRoot: frontend 

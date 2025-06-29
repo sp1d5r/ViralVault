@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, BookOpen } from "lucide-react";
 import { PostData } from "shared";
+import { useNavigate } from 'react-router-dom';
+import { Button } from "../../shadcn/button";
 
 const stringToColor = (str: string) => {
     let hash = 0;
@@ -13,6 +15,7 @@ const stringToColor = (str: string) => {
 
 const TopPerformingPosts: React.FC<{ posts: PostData[] }> = ({ posts }) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const navigate = useNavigate();
 
     const getPostScore = (post: PostData) => {
         const analytics = post.analytics || {};
@@ -47,25 +50,52 @@ const TopPerformingPosts: React.FC<{ posts: PostData[] }> = ({ posts }) => {
                 <ChevronDown className={`lg:hidden transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
             </div>
             <div className={`${isExpanded ? 'block' : 'hidden'} lg:block space-y-3`}>
-                {topPosts.map((post, index) => (
-                    <div key={post.id} className="flex items-center gap-3">
-                        <div 
-                            className="w-12 h-12 rounded overflow-hidden flex-shrink-0"
-                            style={{
-                                background: `linear-gradient(135deg, ${stringToColor(post.title)}, ${stringToColor(post.title + 'alt')})`
-                            }}
-                        />
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate text-white">{post.title}</p>
-                            <p className="text-xs text-neutral-400">
-                                {new Date(post.postDate).toLocaleDateString()} • {post.analytics?.views?.toLocaleString() || 0} views
-                            </p>
+                {topPosts.map((post, index) => {
+                    const isStoryGenerated = post.tags.includes('story-generated') && post.storyId;
+                    
+                    return (
+                        <div key={post.id} className="flex items-center gap-3">
+                            <div 
+                                className="w-12 h-12 rounded overflow-hidden flex-shrink-0"
+                                style={{
+                                    background: `linear-gradient(135deg, ${stringToColor(post.title)}, ${stringToColor(post.title + 'alt')})`
+                                }}
+                            />
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                    <p className="text-sm font-medium truncate text-white">{post.title}</p>
+                                    {isStoryGenerated && (
+                                        <span 
+                                            className="px-1 py-0.5 rounded text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
+                                            title="Generated from Story"
+                                        >
+                                            📖
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-xs text-neutral-400">
+                                    {new Date(post.postDate).toLocaleDateString()} • {post.analytics?.views?.toLocaleString() || 0} views
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {isStoryGenerated && (
+                                    <Button 
+                                        variant="ghost" 
+                                        size="sm"
+                                        onClick={() => navigate(`/story/${post.storyId}`)}
+                                        className="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 p-1"
+                                        title="View Original Story"
+                                    >
+                                        <BookOpen size={14} />
+                                    </Button>
+                                )}
+                                <div className="text-xs font-medium text-indigo-400">
+                                    #{index + 1}
+                                </div>
+                            </div>
                         </div>
-                        <div className="text-xs font-medium text-indigo-400">
-                            #{index + 1}
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );
