@@ -18,6 +18,7 @@ service = LambdaService(
         "FIREBASE_APP_ID",
         "FIREBASE_MEASUREMENT_ID",
         "CLAUDE_API_KEY",
+        "FRONTEND_URL",
     ],
     image_tag=os.getenv('IMAGE_TAG', 'latest')
 )
