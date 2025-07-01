@@ -50,7 +50,8 @@ while IFS= read -r line || [ -n "$line" ]; do
             --name "/${STACK_NAME}/${key_lower}" \
             --value "$value" \
             --type "SecureString" \
-            --overwrite
+            --overwrite \
+            --region eu-west-2
 
         # Check if the command was successful
         if [ $? -eq 0 ]; then
