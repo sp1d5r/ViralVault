@@ -1,19 +1,21 @@
 import { Request, Response } from 'express';
 import { r2Service } from '../services/r2Service';
 
-export const generateUploadUrl = async (req: Request, res: Response) => {
+export const generateUploadUrl = async (req: Request, res: Response): Promise<void> => {
   try {
     const { fileName, contentType } = req.body;
     const userId = req.user?.uid;
 
     if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
     }
 
     if (!fileName || !contentType) {
-      return res.status(400).json({ 
+      res.status(400).json({ 
         error: 'fileName and contentType are required' 
       });
+      return;
     }
 
     const result = await r2Service.generateUploadUrl(
@@ -27,30 +29,35 @@ export const generateUploadUrl = async (req: Request, res: Response) => {
       success: true,
       data: result,
     });
+    return;
   } catch (error) {
     console.error('Error generating upload URL:', error);
     res.status(500).json({ 
       error: 'Failed to generate upload URL' 
     });
+    return;
   }
 };
 
-export const generateDownloadUrl = async (req: Request, res: Response) => {
+export const generateDownloadUrl = async (req: Request, res: Response): Promise<void> => {
   try {
     const { key } = req.params;
     const userId = req.user?.uid;
 
     if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
     }
 
     if (!key) {
-      return res.status(400).json({ error: 'File key is required' });
+      res.status(400).json({ error: 'File key is required' });
+      return;
     }
 
     // Verify user owns the file
     if (!key.startsWith(`users/${userId}/`)) {
-      return res.status(403).json({ error: 'Access denied' });
+      res.status(403).json({ error: 'Access denied' });
+      return;
     }
 
     const result = await r2Service.generateDownloadUrl(key, 3600);
@@ -59,30 +66,35 @@ export const generateDownloadUrl = async (req: Request, res: Response) => {
       success: true,
       data: result,
     });
+    return;
   } catch (error) {
     console.error('Error generating download URL:', error);
     res.status(500).json({ 
       error: 'Failed to generate download URL' 
     });
+    return;
   }
 };
 
-export const deleteFile = async (req: Request, res: Response) => {
+export const deleteFile = async (req: Request, res: Response): Promise<void> => {
   try {
     const { key } = req.params;
     const userId = req.user?.uid;
 
     if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
     }
 
     if (!key) {
-      return res.status(400).json({ error: 'File key is required' });
+      res.status(400).json({ error: 'File key is required' });
+      return;
     }
 
     // Verify user owns the file
     if (!key.startsWith(`users/${userId}/`)) {
-      return res.status(403).json({ error: 'Access denied' });
+      res.status(403).json({ error: 'Access denied' });
+      return;
     }
 
     await r2Service.deleteFile(key);
@@ -91,21 +103,24 @@ export const deleteFile = async (req: Request, res: Response) => {
       success: true,
       message: 'File deleted successfully',
     });
+    return;
   } catch (error) {
     console.error('Error deleting file:', error);
     res.status(500).json({ 
       error: 'Failed to delete file' 
     });
+    return;
   }
 };
 
-export const listUserFiles = async (req: Request, res: Response) => {
+export const listUserFiles = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user?.uid;
     const { prefix } = req.query;
 
     if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
     }
 
     const files = await r2Service.listUserFiles(
@@ -117,30 +132,35 @@ export const listUserFiles = async (req: Request, res: Response) => {
       success: true,
       data: files,
     });
+    return;
   } catch (error) {
     console.error('Error listing files:', error);
     res.status(500).json({ 
       error: 'Failed to list files' 
     });
+    return;
   }
 };
 
-export const getFileMetadata = async (req: Request, res: Response) => {
+export const getFileMetadata = async (req: Request, res: Response): Promise<void> => {
   try {
     const { key } = req.params;
     const userId = req.user?.uid;
 
     if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
     }
 
     if (!key) {
-      return res.status(400).json({ error: 'File key is required' });
+      res.status(400).json({ error: 'File key is required' });
+      return;
     }
 
     // Verify user owns the file
     if (!key.startsWith(`users/${userId}/`)) {
-      return res.status(403).json({ error: 'Access denied' });
+      res.status(403).json({ error: 'Access denied' });
+      return;
     }
 
     const metadata = await r2Service.getFileMetadata(key);
@@ -149,30 +169,35 @@ export const getFileMetadata = async (req: Request, res: Response) => {
       success: true,
       data: metadata,
     });
+    return;
   } catch (error) {
     console.error('Error getting file metadata:', error);
     res.status(500).json({ 
       error: 'Failed to get file metadata' 
     });
+    return;
   }
 };
 
-export const checkFileExists = async (req: Request, res: Response) => {
+export const checkFileExists = async (req: Request, res: Response): Promise<void> => {
   try {
     const { key } = req.params;
     const userId = req.user?.uid;
 
     if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
     }
 
     if (!key) {
-      return res.status(400).json({ error: 'File key is required' });
+      res.status(400).json({ error: 'File key is required' });
+      return;
     }
 
     // Verify user owns the file
     if (!key.startsWith(`users/${userId}/`)) {
-      return res.status(403).json({ error: 'Access denied' });
+      res.status(403).json({ error: 'Access denied' });
+      return;
     }
 
     const exists = await r2Service.fileExists(key);
@@ -181,10 +206,12 @@ export const checkFileExists = async (req: Request, res: Response) => {
       success: true,
       data: { exists },
     });
+    return;
   } catch (error) {
     console.error('Error checking file existence:', error);
     res.status(500).json({ 
       error: 'Failed to check file existence' 
     });
+    return;
   }
 }; 
