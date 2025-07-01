@@ -25,6 +25,7 @@ service = LambdaService(
         "R2_SECRET_ACCESS_KEY",
         "R2_BUCKET_NAME",
         "R2_REGION"
+        
     ],
     image_tag=os.getenv('IMAGE_TAG', 'latest')
 )
