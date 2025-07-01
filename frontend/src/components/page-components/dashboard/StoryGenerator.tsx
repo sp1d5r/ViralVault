@@ -54,7 +54,7 @@ export const StoryGenerator: React.FC<StoryGeneratorProps> = ({ posts }) => {
         tone: 'professional',
         focusAreas: ['Growth & Followers', 'Content Performance'],
         slideCount: 6,
-        selectedPostIds: posts.slice(-5).map(p => p.id || '') // Default to last 5 posts
+        selectedPostIds: [] // Default to no posts selected
     });
 
     const handleFocusAreaToggle = (area: string) => {
@@ -72,6 +72,20 @@ export const StoryGenerator: React.FC<StoryGeneratorProps> = ({ posts }) => {
             selectedPostIds: checked
                 ? [...prev.selectedPostIds, postId]
                 : prev.selectedPostIds.filter(id => id !== postId)
+        }));
+    };
+
+    const handleSelectAll = () => {
+        setSettings(prev => ({
+            ...prev,
+            selectedPostIds: posts.map(p => p.id || '').filter(id => id !== '')
+        }));
+    };
+
+    const handleUnselectAll = () => {
+        setSettings(prev => ({
+            ...prev,
+            selectedPostIds: []
         }));
     };
 
@@ -234,9 +248,31 @@ export const StoryGenerator: React.FC<StoryGeneratorProps> = ({ posts }) => {
 
             {/* Post Selection */}
             <div className="space-y-3">
-                <label className="text-sm font-medium text-white">
-                    Select Posts ({settings.selectedPostIds.length} selected)
-                </label>
+                <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-white">
+                        Select Posts ({settings.selectedPostIds.length} selected)
+                    </label>
+                    <div className="flex gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleSelectAll}
+                            className="text-xs px-2 py-1 h-auto"
+                        >
+                            Select All
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleUnselectAll}
+                            className="text-xs px-2 py-1 h-auto"
+                        >
+                            Unselect All
+                        </Button>
+                    </div>
+                </div>
                 <div className="max-h-40 overflow-y-auto space-y-2">
                     {posts.map((post) => (
                         <div key={post.id} className="flex items-center gap-3 p-2 bg-neutral-800/30 rounded-lg">

@@ -17,6 +17,7 @@ interface StorySlide {
     imagePrompt: string;
     dataPoints?: string[];
     recommendations?: string[];
+    caption?: string;
 }
 
 interface GeneratedStory {
@@ -353,6 +354,14 @@ export const StoryPage: React.FC = () => {
 
                             {/* Slide Content */}
                             <div className="space-y-4 sm:space-y-6">
+                                {/* TikTok-style Caption Overlay */}
+                                {currentSlideData.caption && (
+                                    <div className="w-full flex justify-center">
+                                        <div className="text-2xl sm:text-3xl font-extrabold text-white text-center drop-shadow-lg bg-black/40 px-4 py-2 rounded-lg mb-4 max-w-2xl">
+                                            {currentSlideData.caption}
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="prose prose-invert max-w-none">
                                     <p className="text-base sm:text-lg text-neutral-200 leading-relaxed">
                                         {currentSlideData.content}

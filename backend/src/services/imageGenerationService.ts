@@ -65,7 +65,11 @@ export class ImageGenerationService {
           n: 1,
         });
 
-        return response.data.map((image: any) => ({
+        if (!response.data) {
+          throw new Error('No data received from OpenAI API');
+        }
+
+        return response.data.map((image) => ({
           url: image.url!,
           revisedPrompt: image.revised_prompt,
           size,
@@ -81,7 +85,11 @@ export class ImageGenerationService {
           n: Math.min(n, 10), // DALL-E 2 max is 10
         });
 
-        return response.data.map((image: any) => ({
+        if (!response.data) {
+          throw new Error('No data received from OpenAI API');
+        }
+
+        return response.data.map((image) => ({
           url: image.url!,
           size,
           model,
@@ -101,13 +109,24 @@ export class ImageGenerationService {
     const { imageUrl, size = '1024x1024', n = 1 } = options;
 
     try {
+      // For variations, we need to fetch the image as a buffer and create a File-like object
+      const imageResponse = await fetch(imageUrl);
+      const imageBuffer = await imageResponse.arrayBuffer();
+      
+      // Create a File-like object that satisfies the Uploadable interface
+      const imageFile = new File([imageBuffer], 'image.png', { type: 'image/png' });
+
       const response = await this.client.images.createVariation({
-        image: imageUrl,
+        image: imageFile,
         size: size as '256x256' | '512x512' | '1024x1024',
         n: Math.min(n, 10), // Max is 10
       });
 
-      return response.data.map((image: any) => ({
+      if (!response.data) {
+        throw new Error('No data received from OpenAI API');
+      }
+
+      return response.data.map((image) => ({
         url: image.url!,
         size,
         model: 'dall-e-2', // Variations only work with DALL-E 2
@@ -126,20 +145,39 @@ export class ImageGenerationService {
     const { prompt, imageUrl, maskUrl, size = '1024x1024', n = 1 } = options;
 
     try {
-      const editOptions: any = {
-        image: imageUrl,
+      // Fetch the image as a buffer
+      const imageResponse = await fetch(imageUrl);
+      const imageBuffer = await imageResponse.arrayBuffer();
+      
+      // Create a File-like object that satisfies the Uploadable interface
+      const imageFile = new File([imageBuffer], 'image.png', { type: 'image/png' });
+
+      const editOptions: {
+        image: File;
+        prompt: string;
+        size: '256x256' | '512x512' | '1024x1024';
+        n: number;
+        mask?: File;
+      } = {
+        image: imageFile,
         prompt,
         size: size as '256x256' | '512x512' | '1024x1024',
         n: Math.min(n, 10),
       };
 
       if (maskUrl) {
-        editOptions.mask = maskUrl;
+        const maskResponse = await fetch(maskUrl);
+        const maskBuffer = await maskResponse.arrayBuffer();
+        editOptions.mask = new File([maskBuffer], 'mask.png', { type: 'image/png' });
       }
 
       const response = await this.client.images.edit(editOptions);
 
-      return response.data.map((image: any) => ({
+      if (!response.data) {
+        throw new Error('No data received from OpenAI API');
+      }
+
+      return response.data.map((image) => ({
         url: image.url!,
         size,
         model: 'dall-e-2', // Editing only works with DALL-E 2
@@ -187,10 +225,10 @@ export class ImageGenerationService {
     platform: 'instagram' | 'twitter' | 'linkedin' | 'facebook'
   ): Promise<ImageGenerationResult[]> {
     const aspectRatios = {
-      instagram: '1024x1024', // Square
-      twitter: '1024x1024',   // Square
-      linkedin: '1024x1024',  // Square
-      facebook: '1024x1024',  // Square
+      instagram: '1024x1024' as const, // Square
+      twitter: '1024x1024' as const,   // Square
+      linkedin: '1024x1024' as const,  // Square
+      facebook: '1024x1024' as const,  // Square
     };
 
     const platformPrompts = {
@@ -202,7 +240,7 @@ export class ImageGenerationService {
 
     return this.generateImages({
       prompt: platformPrompts[platform],
-      size: aspectRatios[platform] as any,
+      size: aspectRatios[platform],
       model: 'dall-e-3',
       quality: 'hd',
       style: 'vivid',

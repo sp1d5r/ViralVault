@@ -69,7 +69,7 @@ export const StoryGeneratorModal: React.FC<StoryGeneratorModalProps> = ({ isOpen
         tone: 'casual',
         focusAreas: ['Character Development', 'Emotional Journey'],
         slideCount: 6,
-        selectedPostIds: posts.slice(-5).map(p => p.id || ''), // Default to last 5 posts
+        selectedPostIds: [], // Default to no posts selected
         storyConcept: '',
         imageStyle: 'realistic',
         aspectRatio: '9:16',
@@ -117,6 +117,20 @@ export const StoryGeneratorModal: React.FC<StoryGeneratorModalProps> = ({ isOpen
             selectedPostIds: checked
                 ? [...prev.selectedPostIds, postId]
                 : prev.selectedPostIds.filter(id => id !== postId)
+        }));
+    };
+
+    const handleSelectAll = () => {
+        setSettings(prev => ({
+            ...prev,
+            selectedPostIds: posts.map(p => p.id || '').filter(id => id !== '')
+        }));
+    };
+
+    const handleUnselectAll = () => {
+        setSettings(prev => ({
+            ...prev,
+            selectedPostIds: []
         }));
     };
 
@@ -463,6 +477,27 @@ export const StoryGeneratorModal: React.FC<StoryGeneratorModalProps> = ({ isOpen
                                             <div>
                                                 <h3 className="text-xl font-bold mb-2">Select Posts</h3>
                                                 <p className="text-neutral-400">Choose which posts to include in your story ({settings.selectedPostIds.length} selected)</p>
+                                            </div>
+
+                                            <div className="flex gap-2 mb-4">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={handleSelectAll}
+                                                    className="text-xs px-3 py-1 h-auto"
+                                                >
+                                                    Select All
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={handleUnselectAll}
+                                                    className="text-xs px-3 py-1 h-auto"
+                                                >
+                                                    Unselect All
+                                                </Button>
                                             </div>
 
                                             <div className="space-y-3 max-h-60 overflow-y-auto">

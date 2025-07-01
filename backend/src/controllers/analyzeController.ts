@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { analyzePostsData } from '../services/analyzeService';
-import { ContextSettings, PostContext , FirebaseDatabaseService } from 'shared';
+import { ContextSettings, PostContext , FirebaseDatabaseService , ClaudeService } from 'shared';
+import { z } from 'zod';
 
 interface AnalysisDocument {
     question: string;
@@ -58,4 +59,51 @@ export const analyzePerformance = async (
         console.error('Analysis error:', error);
         res.status(500).json({ error: 'Failed to analyze data' });
     }
+};
+
+// --- Claude Image Analysis (Mock Endpoint) ---
+export const analyzeImageWithClaude = async (req: Request, res: Response): Promise<void> => {
+  // Accepts { imageBase64: string, prompt: string }
+  const schema = z.object({
+    imageBase64: z.string(),
+    prompt: z.string()
+  });
+  const parse = schema.safeParse(req.body);
+  if (!parse.success) {
+    res.status(400).json({ error: 'Invalid request body' });
+    return;
+  }
+  const { imageBase64, prompt } = parse.data;
+
+  try {
+    const claude = new ClaudeService({
+      apiKey: process.env.CLAUDE_API_KEY as string,
+    });
+    const response = await claude.query(
+      [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: 'image/png', // Assume PNG for now
+                data: imageBase64,
+              },
+            },
+          ],
+        },
+      ],
+      z.string(),
+      'You are an expert at extracting analytics from screenshots.'
+    );
+    res.json({ response });
+    return;
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : 'Claude image analysis failed';
+    res.status(500).json({ error: errMsg });
+    return;
+  }
 }; 

@@ -9,6 +9,7 @@ const storySlideResponseSchema = z.object({
     slideType: z.string(),
     title: z.string(),
     content: z.string(),
+    caption: z.string(), // TikTok-style overlay caption
     imagePrompt: z.string(),
     dataPoints: z.array(z.string()).optional(),
     recommendations: z.array(z.string()).optional()
@@ -32,6 +33,7 @@ export interface StoryGenerationRequest {
   aspectRatio: '16:9' | '4:3' | '1:1' | '9:16' | '3:2';
   characterStyle?: string; // Optional: "looks like [actress/actor name]" or "character design"
   colorScheme?: 'warm' | 'cool' | 'neutral' | 'vibrant' | 'monochrome';
+  captionPrompt?: string; // Optional: custom prompt for overlay caption style
 }
 
 interface SystemPromptDocument {
@@ -116,16 +118,18 @@ Please generate a compelling social media story presentation that will engage vi
 
 ${request.storyConcept ? `**IMPORTANT:** Use the provided story concept as the foundation for your narrative: "${request.storyConcept}". Build the entire story around this concept while incorporating the selected slide type and focus areas.` : ''}
 
-For each slide, create a detailed image prompt that can be used in AI image generators like DALL-E, Midjourney, or Stable Diffusion. The image prompt should be:
-- Descriptive and specific for social media storytelling
-- Include the specified visual style: ${request.imageStyle}
-- Use the specified aspect ratio: ${request.aspectRatio}
-- Incorporate the color scheme: ${request.colorScheme || 'neutral'}
-${request.characterStyle ? `- Include character styling: ${request.characterStyle}` : ''}
-- Include visual style, mood, and composition
-- Relevant to the slide content and narrative
-- Engaging and attention-grabbing for social media
-- Include specific visual elements that represent the story and characters
+For each slide, create:
+- A detailed image prompt that can be used in AI image generators like DALL-E, Midjourney, or Stable Diffusion. The image prompt should be:
+  - Descriptive and specific for social media storytelling
+  - Include the specified visual style: ${request.imageStyle}
+  - Use the specified aspect ratio: ${request.aspectRatio}
+  - Incorporate the color scheme: ${request.colorScheme || 'neutral'}
+  ${request.characterStyle ? `- Include character styling: ${request.characterStyle}` : ''}
+  - Include visual style, mood, and composition
+  - Relevant to the slide content and narrative
+  - Engaging and attention-grabbing for social media
+  - Include specific visual elements that represent the story and characters
+- A brief, punchy caption for text overlay in TikTok style. This should be 1-2 lines, designed to grab attention and drive the story forward. ${request.captionPrompt ? `Use this custom instruction for the caption style: "${request.captionPrompt}"` : 'Make it suitable for overlaying on the image, and keep it concise and impactful.'}
 
 The response should be structured as a JSON object with the following format:
 {
@@ -136,6 +140,7 @@ The response should be structured as a JSON object with the following format:
       "slideType": "opening",
       "title": "Slide title",
       "content": "Slide content with narrative and story elements",
+      "caption": "Brief TikTok-style overlay caption for this slide",
       "imagePrompt": "Detailed image prompt incorporating the specified style (${request.imageStyle}), aspect ratio (${request.aspectRatio}), and color scheme (${request.colorScheme || 'neutral'})${request.characterStyle ? `, with character styling: ${request.characterStyle}` : ''}",
       "dataPoints": ["Story beat 1", "Story beat 2"],
       "recommendations": ["Engagement tip 1", "Engagement tip 2"]
@@ -149,7 +154,7 @@ The response should be structured as a JSON object with the following format:
         }]
       }],
       storySlideResponseSchema,
-      "You are an expert social media storyteller and content creator working with ViralVault. Generate compelling, narrative-driven slides that create engaging social media stories perfect for platforms like TikTok and Instagram. For each slide, create detailed image prompts that incorporate the specified visual style, aspect ratio, and color preferences for use in AI image generators."
+      "You are an expert social media storyteller and content creator working with ViralVault. Generate compelling, narrative-driven slides that create engaging social media stories perfect for platforms like TikTok and Instagram. For each slide, create detailed image prompts that incorporate the specified visual style, aspect ratio, and color preferences for use in AI image generators. For each slide, also generate a brief, TikTok-style caption for text overlay, following any custom user instructions if provided."
     );
 
     return response;
