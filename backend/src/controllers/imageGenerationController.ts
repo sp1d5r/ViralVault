@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { imageGenerationService } from '../services/imageGenerationService';
+import { imageGenerationService, ImageGenerationResult } from '../services/imageGenerationService';
 import { FirebaseDatabaseService } from 'shared';
 
 export const generateImages = async (req: Request, res: Response): Promise<void> => {
@@ -28,19 +28,27 @@ export const generateImages = async (req: Request, res: Response): Promise<void>
     }
 
     if (async) {
-      // For now, we'll simulate async behavior by storing the job in Firebase
-      // and returning immediately. In a real implementation, you'd use OpenAI's Background Jobs API
-      const jobId = `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      // Create background job using OpenAI's Background Jobs API
+      const backgroundJob = await imageGenerationService.createImageGenerationJob({
+        prompt,
+        size,
+        quality,
+        format,
+        compression,
+        background,
+      });
       
-      // Store job in Firebase
+      // Store job in Firebase for tracking
       const jobData = {
-        jobId,
+        jobId: backgroundJob.id,
+        openaiJobId: backgroundJob.id,
         userId,
         prompt,
         options: { size, quality, format, compression, background },
-        status: 'pending',
+        status: backgroundJob.status,
         progress: 0,
-        createdAt: Date.now(),
+        createdAt: backgroundJob.created_at,
+        updatedAt: Date.now(),
       };
 
       await new Promise<void>((resolve, reject) => {
@@ -52,14 +60,11 @@ export const generateImages = async (req: Request, res: Response): Promise<void>
         );
       });
 
-      // Start the actual generation in the background
-      generateImageInBackground(jobId, prompt, { size, quality, format, compression, background });
-
       res.json({
         success: true,
-        jobId,
-        status: 'pending',
-        message: 'Image generation started. Use the jobId to check status.',
+        jobId: backgroundJob.id,
+        status: backgroundJob.status,
+        message: 'Image generation job created. Use the jobId to check status.',
       });
     } else {
       // Synchronous generation
@@ -86,66 +91,9 @@ export const generateImages = async (req: Request, res: Response): Promise<void>
   }
 };
 
-// Background image generation function
-async function generateImageInBackground(
-  jobId: string, 
-  prompt: string, 
-  options: any
-): Promise<void> {
-  try {
-    // Update status to processing
-    await updateJobStatus(jobId, 'processing', 50);
 
-    // Generate the image
-    const result = await imageGenerationService.generateImages({
-      prompt,
-      ...options,
-    });
 
-    // Update status to completed
-    await updateJobStatus(jobId, 'completed', 100, result);
-  } catch (error) {
-    console.error(`Background job ${jobId} failed:`, error);
-    await updateJobStatus(jobId, 'failed', undefined, undefined, error instanceof Error ? error.message : 'Unknown error');
-  }
-}
 
-// Update job status in Firebase
-async function updateJobStatus(
-  jobId: string,
-  status: 'pending' | 'processing' | 'completed' | 'failed',
-  progress?: number,
-  result?: any,
-  error?: string
-): Promise<void> {
-  const updateData: any = {
-    status,
-    progress,
-    updatedAt: Date.now(),
-  };
-
-  if (result) {
-    updateData.result = result;
-  }
-
-  if (error) {
-    updateData.error = error;
-  }
-
-  if (status === 'completed' || status === 'failed') {
-    updateData.completedAt = Date.now();
-  }
-
-  await new Promise<void>((resolve, reject) => {
-    FirebaseDatabaseService.updateDocument(
-      'image-generation-jobs',
-      jobId,
-      updateData,
-      () => resolve(),
-      (error) => reject(error)
-    );
-  });
-}
 
 // Get job status
 export const getJobStatus = async (req: Request, res: Response): Promise<void> => {
@@ -184,10 +132,64 @@ export const getJobStatus = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    res.json({
-      success: true,
-      job,
-    });
+    // Poll OpenAI for the latest job status
+    try {
+      const openaiJobStatus = await imageGenerationService.getJobStatus(jobId);
+      
+      // Update Firebase with the latest status
+      const updateData: {
+        status: string;
+        updatedAt: number;
+        result?: ImageGenerationResult[];
+        completedAt?: number;
+        progress?: number;
+        error?: string;
+      } = {
+        status: openaiJobStatus.status,
+        updatedAt: Date.now(),
+      };
+
+      if (openaiJobStatus.status === 'completed' && openaiJobStatus.result) {
+        updateData.result = openaiJobStatus.result;
+        updateData.completedAt = openaiJobStatus.completed_at;
+        updateData.progress = 100;
+      } else if (openaiJobStatus.status === 'failed' && openaiJobStatus.error) {
+        updateData.error = openaiJobStatus.error;
+        updateData.completedAt = openaiJobStatus.completed_at;
+      } else if (openaiJobStatus.status === 'in_progress') {
+        updateData.progress = 50; // Estimate progress
+      }
+
+      // Update Firebase
+      await new Promise<void>((resolve, reject) => {
+        FirebaseDatabaseService.updateDocument(
+          'image-generation-jobs',
+          jobId,
+          updateData,
+          () => resolve(),
+          (error) => reject(error)
+        );
+      });
+
+      // Return the updated job data
+      const updatedJob = {
+        ...job,
+        ...updateData,
+      };
+
+      res.json({
+        success: true,
+        job: updatedJob,
+      });
+    } catch (openaiError) {
+      console.error('Error polling OpenAI job status:', openaiError);
+      // Return the cached Firebase data if OpenAI polling fails
+      res.json({
+        success: true,
+        job,
+        warning: 'Unable to fetch latest status from OpenAI',
+      });
+    }
   } catch (error) {
     console.error('Error getting job status:', error);
     res.status(500).json({ 
@@ -276,7 +278,20 @@ export const cancelJob = async (req: Request, res: Response): Promise<void> => {
     }
 
     // Update job status to cancelled
-    await updateJobStatus(jobId, 'failed', undefined, undefined, 'Job cancelled by user');
+    await new Promise<void>((resolve, reject) => {
+      FirebaseDatabaseService.updateDocument(
+        'image-generation-jobs',
+        jobId,
+        {
+          status: 'failed',
+          error: 'Job cancelled by user',
+          updatedAt: Date.now(),
+          completedAt: Date.now(),
+        },
+        () => resolve(),
+        (error) => reject(error)
+      );
+    });
 
     res.json({
       success: true,

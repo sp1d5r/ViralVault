@@ -44,7 +44,7 @@ export class ClaudeService {
 
     const payload = {
       model: this.model,
-      max_tokens: 1024,
+      max_tokens: 8000,
       system: systemPrompt,
       messages,
     };

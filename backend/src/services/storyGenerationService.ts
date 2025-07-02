@@ -150,6 +150,8 @@ The response should be structured as a JSON object with the following format:
   "keyInsights": ["Story insight 1", "Story insight 2", "Story insight 3"],
   "nextSteps": ["Next story beat 1", "Next story beat 2"]
 }
+
+IMPORTANT: Respond ONLY with valid JSON. Do not include any explanatory text, markdown formatting, or additional commentary. Your entire response must be a single JSON object that can be parsed directly. No code blocks, no extra text, just the JSON object.
           `
         }]
       }],

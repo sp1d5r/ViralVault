@@ -29,9 +29,9 @@ export interface ImageEditOptions {
 
 export interface BackgroundJob {
   id: string;
-  status: 'pending' | 'running' | 'succeeded' | 'failed';
-  result?: any;
-  error?: any;
+  status: 'queued' | 'in_progress' | 'completed' | 'failed' | 'cancelled' | 'incomplete';
+  result?: ImageGenerationResult[];
+  error?: string;
   created_at: number;
   completed_at?: number;
 }
@@ -61,31 +61,32 @@ export class ImageGenerationService {
     } = options;
 
     try {
-      // Build the tool configuration
-      const toolConfig: any = {
+      // Build the image generation tool configuration
+      const imageGenerationTool: any = {
         type: 'image_generation',
       };
 
       // Only add properties if they're not 'auto' or default
-      if (size !== 'auto') toolConfig.size = size;
-      if (quality !== 'auto') toolConfig.quality = quality;
-      if (format !== 'png') toolConfig.format = format;
-      if (background !== 'auto') toolConfig.background = background;
+      if (size !== 'auto') imageGenerationTool.size = size;
+      if (quality !== 'auto') imageGenerationTool.quality = quality;
+      if (format !== 'png') imageGenerationTool.output_format = format;
+      if (background !== 'auto') imageGenerationTool.background = background;
       if (compression !== undefined && (format === 'jpeg' || format === 'webp')) {
-        toolConfig.compression = compression;
+        imageGenerationTool.output_compression = compression;
       }
 
-      // Create background job using OpenAI's Background Jobs API
-      const job = await this.client.beta.backgroundJobs.create({
+      // Create background job using OpenAI's Responses API
+      const response = await this.client.responses.create({
         model: this.defaultModel,
         input: prompt,
-        tools: [toolConfig],
+        tools: [imageGenerationTool],
+        background: true, // This enables background processing
       });
 
       return {
-        id: job.id,
-        status: job.status,
-        created_at: job.created_at,
+        id: response.id,
+        status: response.status || 'queued',
+        created_at: response.created_at,
       };
     } catch (error) {
       console.error('Error creating background job:', error);
@@ -98,15 +99,28 @@ export class ImageGenerationService {
    */
   async getJobStatus(jobId: string): Promise<BackgroundJob> {
     try {
-      const job = await this.client.beta.backgroundJobs.retrieve(jobId);
+      const response = await this.client.responses.retrieve(jobId);
       
+      let result: ImageGenerationResult[] | undefined;
+      let error: string | undefined;
+
+      if (response.status === 'completed' && response.output) {
+        try {
+          result = this.extractImageResults(response);
+        } catch (extractError) {
+          error = extractError instanceof Error ? extractError.message : 'Failed to extract image results';
+        }
+      } else if (response.status === 'failed' && response.error) {
+        error = response.error.message;
+      }
+
       return {
-        id: job.id,
-        status: job.status,
-        result: job.result,
-        error: job.error,
-        created_at: job.created_at,
-        completed_at: job.completed_at,
+        id: response.id,
+        status: response.status || 'queued',
+        result,
+        error,
+        created_at: response.created_at,
+        completed_at: response.status === 'completed' || response.status === 'failed' ? Date.now() : undefined,
       };
     } catch (error) {
       console.error('Error retrieving job status:', error);
@@ -119,16 +133,10 @@ export class ImageGenerationService {
    */
   async cancelJob(jobId: string): Promise<BackgroundJob> {
     try {
-      const job = await this.client.beta.backgroundJobs.cancel(jobId);
+      await this.client.responses.cancel(jobId);
       
-      return {
-        id: job.id,
-        status: job.status,
-        result: job.result,
-        error: job.error,
-        created_at: job.created_at,
-        completed_at: job.completed_at,
-      };
+      // Get the updated status after cancellation
+      return this.getJobStatus(jobId);
     } catch (error) {
       console.error('Error cancelling job:', error);
       throw new Error(`Failed to cancel job: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -136,22 +144,22 @@ export class ImageGenerationService {
   }
 
   /**
-   * Extract image results from a completed job
+   * Extract image results from a completed response
    */
-  extractImageResults(job: BackgroundJob): ImageGenerationResult[] {
-    if (job.status !== 'succeeded' || !job.result) {
-      throw new Error('Job not completed or no result available');
+  extractImageResults(response: any): ImageGenerationResult[] {
+    if (response.status !== 'completed' || !response.output) {
+      throw new Error('Response not completed or no output available');
     }
 
-    // Extract image generation results from the job result
-    const imageResults = job.result.output
+    // Extract image generation results from the response output
+    const imageResults = response.output
       .filter((output: any) => output.type === 'image_generation_call')
       .map((output: any) => ({
-        base64Data: output.result,
+        base64Data: output.result || '',
         revisedPrompt: output.revised_prompt,
         size: output.size || 'auto',
         model: 'gpt-image-1',
-        created: job.created_at,
+        created: response.created_at,
         format: output.format || 'png',
       }));
 
@@ -176,43 +184,28 @@ export class ImageGenerationService {
     } = options;
 
     try {
-      // Build the tool configuration - keeping it simple like the example
-      const toolConfig: any = {
+      // Build the image generation tool configuration
+      const imageGenerationTool: any = {
         type: 'image_generation',
       };
 
       // Only add properties if they're not 'auto' or default
-      if (size !== 'auto') toolConfig.size = size;
-      if (quality !== 'auto') toolConfig.quality = quality;
-      if (format !== 'png') toolConfig.format = format;
-      if (background !== 'auto') toolConfig.background = background;
+      if (size !== 'auto') imageGenerationTool.size = size;
+      if (quality !== 'auto') imageGenerationTool.quality = quality;
+      if (format !== 'png') imageGenerationTool.output_format = format;
+      if (background !== 'auto') imageGenerationTool.background = background;
       if (compression !== undefined && (format === 'jpeg' || format === 'webp')) {
-        toolConfig.compression = compression;
+        imageGenerationTool.output_compression = compression;
       }
 
       const response = await this.client.responses.create({
         model: this.defaultModel,
         input: prompt,
-        tools: [toolConfig],
+        tools: [imageGenerationTool],
+        background: false, // Synchronous processing
       });
 
-      // Extract image generation results following the example pattern
-      const imageResults = response.output
-        .filter((output: any) => output.type === 'image_generation_call')
-        .map((output: any) => ({
-          base64Data: output.result,
-          revisedPrompt: output.revised_prompt,
-          size: output.size || size,
-          model: 'gpt-image-1',
-          created: Date.now(),
-          format: output.format || format,
-        }));
-
-      if (imageResults.length === 0) {
-        throw new Error('No images were generated');
-      }
-
-      return imageResults;
+      return this.extractImageResults(response);
     } catch (error) {
       console.error('Error generating images:', error);
       throw new Error(`Failed to generate images: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -226,15 +219,15 @@ export class ImageGenerationService {
     const { prompt, base64Image, base64Mask, size = 'auto', quality = 'auto', format = 'png' } = options;
 
     try {
-      // Build the tool configuration
-      const toolConfig: any = {
+      // Build the image generation tool configuration
+      const imageGenerationTool: any = {
         type: 'image_generation',
       };
 
       // Only add properties if they're not 'auto' or default
-      if (size !== 'auto') toolConfig.size = size;
-      if (quality !== 'auto') toolConfig.quality = quality;
-      if (format !== 'png') toolConfig.format = format;
+      if (size !== 'auto') imageGenerationTool.size = size;
+      if (quality !== 'auto') imageGenerationTool.quality = quality;
+      if (format !== 'png') imageGenerationTool.output_format = format;
 
       // Create the input with the image
       const inputs: any[] = [
@@ -250,26 +243,11 @@ export class ImageGenerationService {
       const response = await this.client.responses.create({
         model: this.defaultModel,
         input: inputs,
-        tools: [toolConfig],
+        tools: [imageGenerationTool],
+        background: false, // Synchronous processing
       });
 
-      // Extract image generation results
-      const imageResults = response.output
-        .filter((output: any) => output.type === 'image_generation_call')
-        .map((output: any) => ({
-          base64Data: output.result,
-          revisedPrompt: output.revised_prompt,
-          size: output.size || size,
-          model: 'gpt-image-1',
-          created: Date.now(),
-          format: output.format || format,
-        }));
-
-      if (imageResults.length === 0) {
-        throw new Error('No images were generated from edit');
-      }
-
-      return imageResults;
+      return this.extractImageResults(response);
     } catch (error) {
       console.error('Error editing image:', error);
       throw new Error(`Failed to edit image: ${error instanceof Error ? error.message : 'Unknown error'}`);
