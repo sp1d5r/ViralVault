@@ -1,32 +1,36 @@
 interface ImageGenerationOptions {
   prompt: string;
-  size?: '256x256' | '512x512' | '1024x1024' | '1792x1024' | '1024x1792';
-  quality?: 'standard' | 'hd';
-  style?: 'vivid' | 'natural';
-  model?: 'dall-e-2' | 'dall-e-3';
-  n?: number;
+  size?: 'auto' | '1024x1024' | '1024x1536' | '1536x1024';
+  quality?: 'auto' | 'low' | 'medium' | 'high';
+  format?: 'png' | 'jpeg' | 'webp';
+  compression?: number;
+  background?: 'auto' | 'transparent' | 'opaque';
 }
 
 interface ImageGenerationResult {
-  url: string;
+  base64Data: string;
   revisedPrompt?: string;
   size: string;
   model: string;
   created: number;
+  format: string;
 }
 
 interface ImageVariationOptions {
-  imageUrl: string;
-  size?: '256x256' | '512x512' | '1024x1024';
-  n?: number;
+  base64Image: string;
+  variationPrompt: string;
+  size?: 'auto' | '1024x1024' | '1024x1536' | '1536x1024';
+  quality?: 'auto' | 'low' | 'medium' | 'high';
+  format?: 'png' | 'jpeg' | 'webp';
 }
 
 interface ImageEditOptions {
   prompt: string;
-  imageUrl: string;
-  maskUrl?: string;
-  size?: '256x256' | '512x512' | '1024x1024';
-  n?: number;
+  base64Image: string;
+  base64Mask?: string;
+  size?: 'auto' | '1024x1024' | '1024x1536' | '1536x1024';
+  quality?: 'auto' | 'low' | 'medium' | 'high';
+  format?: 'png' | 'jpeg' | 'webp';
 }
 
 interface ApiResponse<T> {
@@ -37,9 +41,9 @@ interface ApiResponse<T> {
 }
 
 export class ImageGenerationService {
-  private fetchWithAuth: (endpoint: string, options?: RequestInit) => Promise<Response>;
+  private fetchWithAuth: (url: string, options?: RequestInit) => Promise<Response>;
 
-  constructor(fetchWithAuth: (endpoint: string, options?: RequestInit) => Promise<Response>) {
+  constructor(fetchWithAuth: (url: string, options?: RequestInit) => Promise<Response>) {
     this.fetchWithAuth = fetchWithAuth;
   }
 
@@ -54,6 +58,104 @@ export class ImageGenerationService {
 
     const result: ApiResponse<ImageGenerationResult[]> = await response.json();
     return result.data;
+  }
+
+  /**
+   * Generate images asynchronously using background jobs
+   */
+  async generateImagesAsync(options: ImageGenerationOptions): Promise<{ jobId: string; status: string }> {
+    const response = await this.fetchWithAuth('api/images/generate', {
+      method: 'POST',
+      body: JSON.stringify({ ...options, async: true }),
+    });
+
+    const result: ApiResponse<{ jobId: string; status: string }> = await response.json();
+    return result.data;
+  }
+
+  /**
+   * Get job status
+   */
+  async getJobStatus(jobId: string): Promise<{
+    job: {
+      jobId: string;
+      status: string;
+      progress?: number;
+      result?: ImageGenerationResult[];
+      error?: string;
+      createdAt: number;
+      completedAt?: number;
+    };
+    warning?: string;
+  }> {
+    const response = await this.fetchWithAuth(`api/images/jobs/${jobId}`, {
+      method: 'GET',
+    });
+
+    const result: ApiResponse<{
+      job: any;
+      warning?: string;
+    }> = await response.json();
+    return result.data;
+  }
+
+  /**
+   * Poll job status until completion
+   */
+  async pollJobStatus(
+    jobId: string,
+    onProgress?: (progress: number, status: string) => void,
+    maxAttempts: number = 60, // 5 minutes with 5-second intervals
+    intervalMs: number = 5000
+  ): Promise<ImageGenerationResult[]> {
+    let attempts = 0;
+
+    while (attempts < maxAttempts) {
+      try {
+        const { job } = await this.getJobStatus(jobId);
+        
+        if (onProgress && job.progress !== undefined) {
+          onProgress(job.progress, job.status);
+        }
+
+        if (job.status === 'completed' && job.result) {
+          return job.result;
+        }
+
+        if (job.status === 'failed') {
+          throw new Error(job.error || 'Job failed');
+        }
+
+        // Wait before next poll
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+        attempts++;
+      } catch (error) {
+        console.error(`Error polling job status (attempt ${attempts + 1}):`, error);
+        attempts++;
+        
+        if (attempts >= maxAttempts) {
+          throw new Error('Job polling timed out');
+        }
+        
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+      }
+    }
+
+    throw new Error('Job polling timed out');
+  }
+
+  /**
+   * Cancel a job
+   */
+  async cancelJob(jobId: string): Promise<void> {
+    const response = await this.fetchWithAuth(`api/images/jobs/${jobId}/cancel`, {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to cancel job');
+    }
   }
 
   /**

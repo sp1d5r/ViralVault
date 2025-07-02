@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '../shadcn/button';
+import React, { useState } from 'react';
 import { Card, CardContent } from '../shadcn/card';
+import { Button } from '../shadcn/button';
 import { Badge } from '../shadcn/badge';
-import { Image, Download, Sparkles, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
+import { Image, Download, Sparkles, AlertCircle, X } from 'lucide-react';
 import { useApi } from '../../contexts/ApiContext';
-import { toast } from '../../contexts/ToastProvider';
+import { useToast } from '../../contexts/ToastProvider';
+import { ImageGenerationService } from '../../lib/imageGeneration';
 
 interface SlideImageGeneratorProps {
   imagePrompt: string;
@@ -16,6 +17,8 @@ interface ImageGenerationStatus {
   status: 'idle' | 'generating' | 'completed' | 'error';
   imageData?: string;
   error?: string;
+  progress?: number;
+  jobId?: string;
 }
 
 export const SlideImageGenerator: React.FC<SlideImageGeneratorProps> = ({
@@ -26,41 +29,46 @@ export const SlideImageGenerator: React.FC<SlideImageGeneratorProps> = ({
   const { fetchWithAuth } = useApi();
   const [imageStatus, setImageStatus] = useState<ImageGenerationStatus>({ status: 'idle' });
   const [isGenerating, setIsGenerating] = useState(false);
+  const { toast } = useToast();
+
+  const imageService = new ImageGenerationService(fetchWithAuth);
 
   const generateImage = async () => {
     if (isGenerating) return;
 
     setIsGenerating(true);
-    setImageStatus({ status: 'generating' });
+    setImageStatus({ status: 'generating', progress: 0 });
 
     try {
       // Enhanced prompt for better results
       const enhancedPrompt = `${imagePrompt}, high quality, detailed, professional, suitable for social media, vibrant colors, modern design`;
 
-      const response = await fetchWithAuth('api/images/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt: enhancedPrompt,
-          size: '1024x1024',
-          quality: 'high',
-          format: 'png',
-        }),
+      // Start async image generation
+      const { jobId } = await imageService.generateImagesAsync({
+        prompt: enhancedPrompt,
+        size: '1024x1536',
+        quality: 'high',
+        format: 'png',
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to generate image');
-      }
+      setImageStatus(prev => ({ ...prev, jobId }));
 
-      const result = await response.json();
+      // Poll for completion
+      const results = await imageService.pollJobStatus(
+        jobId,
+        (progress, status) => {
+          setImageStatus(prev => ({ ...prev, progress }));
+        },
+        60, // 5 minutes max
+        3000 // Poll every 3 seconds
+      );
 
-      if (result.success && result.data && result.data.length > 0) {
-        const imageResult = result.data[0];
+      if (results && results.length > 0) {
+        const imageResult = results[0];
         setImageStatus({
           status: 'completed',
           imageData: imageResult.base64Data,
+          progress: 100,
         });
 
         toast({
@@ -87,66 +95,55 @@ export const SlideImageGenerator: React.FC<SlideImageGeneratorProps> = ({
     }
   };
 
-  const downloadImage = () => {
-    if (!imageStatus.imageData) return;
-
-    try {
-      // Convert base64 to blob
-      const byteCharacters = atob(imageStatus.imageData);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
+  const cancelGeneration = async () => {
+    if (imageStatus.jobId) {
+      try {
+        await imageService.cancelJob(imageStatus.jobId);
+        setImageStatus({ status: 'idle' });
+        toast({
+          title: "Generation Cancelled",
+          description: "Image generation has been cancelled.",
+        });
+      } catch (error) {
+        console.error('Error cancelling job:', error);
       }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: 'image/png' });
+    }
+  };
 
-      // Create download link
-      const url = URL.createObjectURL(blob);
+  const downloadImage = () => {
+    if (imageStatus.imageData) {
       const link = document.createElement('a');
-      link.href = url;
+      link.href = `data:image/png;base64,${imageStatus.imageData}`;
       link.download = `slide-${slideNumber}-${slideTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: "Image Downloaded!",
-        description: "Image saved to your downloads folder",
-      });
-    } catch (error) {
-      console.error('Error downloading image:', error);
-      toast({
-        title: "Download Failed",
-        description: "Failed to download image. Please try again.",
-        variant: "destructive",
-      });
     }
   };
 
   const getStatusIcon = () => {
     switch (imageStatus.status) {
       case 'generating':
-        return <RefreshCw className="h-4 w-4 animate-spin" />;
+        return <Sparkles className="h-3 w-3 animate-pulse" />;
       case 'completed':
-        return <CheckCircle className="h-4 w-4 text-green-400" />;
+        return <Image className="h-3 w-3" />;
       case 'error':
-        return <AlertCircle className="h-4 w-4 text-red-400" />;
+        return <AlertCircle className="h-3 w-3" />;
       default:
-        return <Image className="h-4 w-4" />;
+        return <Image className="h-3 w-3" />;
     }
   };
 
   const getStatusText = () => {
     switch (imageStatus.status) {
       case 'generating':
-        return 'Generating...';
+        return imageStatus.progress ? `Generating (${imageStatus.progress}%)` : 'Generating...';
       case 'completed':
-        return 'Ready';
+        return 'Completed';
       case 'error':
-        return 'Failed';
+        return 'Error';
       default:
-        return 'Generate Image';
+        return 'Ready';
     }
   };
 
@@ -188,7 +185,7 @@ export const SlideImageGenerator: React.FC<SlideImageGeneratorProps> = ({
               <img
                 src={`data:image/png;base64,${imageStatus.imageData}`}
                 alt={`Generated image for ${slideTitle}`}
-                className="w-full h-48 object-cover rounded-lg border border-neutral-600"
+                className="w-full h-64 object-cover rounded-lg border border-neutral-600"
               />
               <div className="absolute top-2 right-2">
                 <Button
@@ -204,7 +201,7 @@ export const SlideImageGenerator: React.FC<SlideImageGeneratorProps> = ({
 
           {/* Generation Placeholder */}
           {imageStatus.status === 'generating' && (
-            <div className="w-full h-48 bg-neutral-700/30 rounded-lg border border-neutral-600 flex items-center justify-center">
+            <div className="w-full h-64 bg-neutral-700/30 rounded-lg border border-neutral-600 flex items-center justify-center">
               <div className="flex items-center gap-3 text-neutral-400">
                 <Sparkles className="h-6 w-6 animate-pulse" />
                 <span>Generating your image...</span>
@@ -214,7 +211,7 @@ export const SlideImageGenerator: React.FC<SlideImageGeneratorProps> = ({
 
           {/* Error State */}
           {imageStatus.status === 'error' && (
-            <div className="w-full h-48 bg-red-500/10 rounded-lg border border-red-500/20 flex items-center justify-center">
+            <div className="w-full h-64 bg-red-500/10 rounded-lg border border-red-500/20 flex items-center justify-center">
               <div className="text-center text-red-400">
                 <AlertCircle className="h-8 w-8 mx-auto mb-2" />
                 <p className="text-sm">Failed to generate image</p>
@@ -232,7 +229,7 @@ export const SlideImageGenerator: React.FC<SlideImageGeneratorProps> = ({
             >
               {isGenerating ? (
                 <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  <Sparkles className="mr-2 h-4 w-4 animate-spin" />
                   Generating...
                 </>
               ) : (
