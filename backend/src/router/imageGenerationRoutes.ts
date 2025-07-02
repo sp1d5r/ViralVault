@@ -7,8 +7,10 @@ import {
   generateEnhancedImages,
   generateSocialMediaImages,
   generateBlogImages,
-  validatePrompt,
+  // validatePrompt,
   getAvailableModels,
+  convertBase64ToDataUrl,
+  convertDataUrlToBase64,
 } from '../controllers/imageGenerationController';
 
 const router = express.Router();
@@ -35,9 +37,13 @@ router.post('/social-media', generateSocialMediaImages);
 router.post('/blog', generateBlogImages);
 
 // Validate prompt for content policy
-router.post('/validate-prompt', validatePrompt);
+// router.post('/validate-prompt', validatePrompt);
 
 // Get available models and capabilities
 router.get('/models', getAvailableModels);
+
+// Utility routes for base64 conversion
+router.post('/convert/base64-to-data-url', convertBase64ToDataUrl);
+router.post('/convert/data-url-to-base64', convertDataUrlToBase64);
 
 export default router; 
