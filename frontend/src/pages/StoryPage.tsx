@@ -8,6 +8,7 @@ import { useApi } from '../contexts/ApiContext';
 import { toast } from '../contexts/ToastProvider';
 import { FirebaseDatabaseService, PostData } from 'shared';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from '../components/shadcn/breadcrumbs';
+import { SlideImageGenerator } from '../components/ui/SlideImageGenerator';
 
 interface StorySlide {
     slideNumber: number;
@@ -366,6 +367,15 @@ export const StoryPage: React.FC = () => {
                                     <p className="text-base sm:text-lg text-neutral-200 leading-relaxed">
                                         {currentSlideData.content}
                                     </p>
+                                </div>
+
+                                {/* Image Generator */}
+                                <div className="border-t border-neutral-700 pt-4 sm:pt-6">
+                                    <SlideImageGenerator
+                                        imagePrompt={currentSlideData.imagePrompt}
+                                        slideTitle={currentSlideData.title}
+                                        slideNumber={currentSlide + 1}
+                                    />
                                 </div>
 
                                 {/* Image Prompt */}
