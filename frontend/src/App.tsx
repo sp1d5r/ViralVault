@@ -17,6 +17,7 @@ import Onboarding from './pages/Onboarding';
 import { Toaster } from './components/shadcn/toaster';
 import { ChatPage } from './pages/ChatPage';
 import { StoryPage } from './pages/StoryPage';
+import { R2TestComponent } from './components/ui/R2TestComponent';
 
 // Example components for different routes
 const About = () => <ScrollableLayout><h2>About Page</h2></ScrollableLayout>;
@@ -36,6 +37,7 @@ function App() {
                   <Route path="/about" element={<About />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/pricing" element={<Pricing />} />
+                  <Route path="/test" element={<R2TestComponent />} />
 
                   {/* Articles */}
                   <Route path="/articles" element={<Articles />} />

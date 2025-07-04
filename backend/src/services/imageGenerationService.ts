@@ -100,6 +100,7 @@ export class ImageGenerationService {
   async getJobStatus(jobId: string): Promise<BackgroundJob> {
     try {
       const response = await this.client.responses.retrieve(jobId);
+
       
       let result: ImageGenerationResult[] | undefined;
       let error: string | undefined;

@@ -16,11 +16,21 @@ interface GeneratedImage {
   created: number;
 }
 
+interface ImageGenerationResult {
+  base64Data?: string;
+  imageUrl?: string;
+  revisedPrompt?: string;
+  size: string;
+  model: string;
+  created: number;
+  format: string;
+}
+
 export const ImageGenerator: React.FC = () => {
   const { fetchWithAuth } = useApi();
   const [prompt, setPrompt] = useState('');
   const [size, setSize] = useState<'1024x1024'>('1024x1024');
-  const [quality, setQuality] = useState<'standard' | 'hd'>('standard');
+  const [quality, setQuality] = useState<'auto' | 'low' | 'medium' | 'high'>('medium');
   const [style, setStyle] = useState<'vivid' | 'natural'>('vivid');
   const [model, setModel] = useState<'dall-e-2' | 'dall-e-3'>('dall-e-3');
   const [generating, setGenerating] = useState(false);
@@ -29,6 +39,15 @@ export const ImageGenerator: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState<'generate' | 'enhanced' | 'social' | 'blog'>('generate');
 
   const imageService = new ImageGenerationService(fetchWithAuth);
+
+  // Helper function to convert ImageGenerationResult to GeneratedImage
+  const convertToGeneratedImage = (result: ImageGenerationResult): GeneratedImage => ({
+    url: result.imageUrl || result.base64Data || '',
+    revisedPrompt: result.revisedPrompt,
+    size: result.size,
+    model: result.model,
+    created: result.created,
+  });
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -44,11 +63,10 @@ export const ImageGenerator: React.FC = () => {
         prompt: prompt.trim(),
         size,
         quality,
-        style,
-        model,
       });
 
-      setGeneratedImages(prev => [...images, ...prev]);
+      const convertedImages = images.map(convertToGeneratedImage);
+      setGeneratedImages(prev => [...convertedImages, ...prev]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Generation failed');
     } finally {
@@ -71,7 +89,8 @@ export const ImageGenerator: React.FC = () => {
         style === 'vivid' ? 'vivid, colorful' : 'natural, realistic'
       );
 
-      setGeneratedImages(prev => [...images, ...prev]);
+      const convertedImages = images.map(convertToGeneratedImage);
+      setGeneratedImages(prev => [...convertedImages, ...prev]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Enhanced generation failed');
     } finally {
@@ -90,7 +109,8 @@ export const ImageGenerator: React.FC = () => {
 
     try {
       const images = await imageService.generateSocialMediaImages(prompt.trim(), platform);
-      setGeneratedImages(prev => [...images, ...prev]);
+      const convertedImages = images.map(convertToGeneratedImage);
+      setGeneratedImages(prev => [...convertedImages, ...prev]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Social media generation failed');
     } finally {
@@ -109,7 +129,8 @@ export const ImageGenerator: React.FC = () => {
 
     try {
       const images = await imageService.generateBlogImages(prompt.trim());
-      setGeneratedImages(prev => [...images, ...prev]);
+      const convertedImages = images.map(convertToGeneratedImage);
+      setGeneratedImages(prev => [...convertedImages, ...prev]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Blog image generation failed');
     } finally {
@@ -214,8 +235,10 @@ export const ImageGenerator: React.FC = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="standard">Standard</SelectItem>
-                      <SelectItem value="hd">HD</SelectItem>
+                      <SelectItem value="auto">Auto</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

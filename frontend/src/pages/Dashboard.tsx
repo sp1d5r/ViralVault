@@ -78,6 +78,39 @@ const Dashboard: React.FC = () => {
     }
   }, [authState, profileStatus, navigate]);
 
+  // Handle authentication failure - redirect to stories
+  useEffect(() => {
+    if (authState?.status === AuthStatus.UNAUTHENTICATED) {
+      navigate("/dashboard?content=stories");
+    }
+  }, [authState?.status, navigate]);
+
+  // Wait for authentication to pass before making API requests
+  const [authTimeout, setAuthTimeout] = useState(false);
+  
+  // Timeout fallback for authentication
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (authState?.status === AuthStatus.LOADING) {
+        console.log('Authentication timeout - forcing ready state');
+        setAuthTimeout(true);
+      }
+    }, 10000); // 10 second timeout
+    
+    return () => clearTimeout(timer);
+  }, [authState?.status]);
+  
+  const isReady = authState?.status === AuthStatus.AUTHENTICATED || authTimeout;
+  
+  // Debug logging
+  console.log('Dashboard Debug:', {
+    authState: authState?.status,
+    profileStatus,
+    isReady,
+    authTimeout,
+    user: authState?.user
+  });
+
   const handleLinkClick = (id: string) => {
     navigate(`?content=${id}`);
   };
@@ -117,7 +150,27 @@ const Dashboard: React.FC = () => {
           </SidebarBody>
         </Sidebar>
         <main className="flex-1 overflow-auto">
-          {renderContent(activeContent)}
+          {isReady ? renderContent(activeContent) : (
+            <div className="flex items-center justify-center h-full text-white">
+              <div className="flex flex-col items-center gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-400"></div>
+                  <span>Loading...</span>
+                </div>
+                <div className="text-sm text-neutral-400">
+                  Auth Status: {authState?.status || 'unknown'}
+                </div>
+                <Button 
+                  onClick={() => setAuthTimeout(true)}
+                  variant="outline"
+                  size="sm"
+                  className="bg-indigo-500/10 border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20"
+                >
+                  Skip Loading
+                </Button>
+              </div>
+            </div>
+          )}
         </main>
       </div>
     </div>

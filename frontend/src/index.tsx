@@ -3,9 +3,20 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import { initializeFirebase } from 'shared';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Add an immediate console log to verify the file is being executed
 console.log('Script starting...');
+
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 try {
   const firebaseConfig = {
@@ -18,14 +29,25 @@ try {
     measurementId: import.meta.env.VITE_MEASUREMENT_ID || '',
   };
 
+  console.log('Firebase config:', {
+    apiKey: firebaseConfig.apiKey ? 'SET' : 'MISSING',
+    authDomain: firebaseConfig.authDomain ? 'SET' : 'MISSING',
+    projectId: firebaseConfig.projectId ? 'SET' : 'MISSING',
+    appId: firebaseConfig.appId ? 'SET' : 'MISSING',
+  });
+
+  console.log('Initializing Firebase...');
   initializeFirebase(firebaseConfig);
+  console.log('Firebase initialized successfully');
   
   const rootElement = document.getElementById('root');
   if (!rootElement) throw new Error('Root element not found');
   
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
         <App />
+      </QueryClientProvider>
     </React.StrictMode>
   );
 

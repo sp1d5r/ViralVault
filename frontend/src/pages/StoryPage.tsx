@@ -229,7 +229,7 @@ export const StoryPage: React.FC = () => {
                             </BreadcrumbItem>
                             <BreadcrumbSeparator />
                             <BreadcrumbItem>
-                                <BreadcrumbLink href="/dashboard">Stories</BreadcrumbLink>
+                                <BreadcrumbLink href="/dashboard?content=stories">Stories</BreadcrumbLink>
                             </BreadcrumbItem>
                             <BreadcrumbSeparator />
                             <BreadcrumbItem>
@@ -372,9 +372,11 @@ export const StoryPage: React.FC = () => {
                                 {/* Image Generator */}
                                 <div className="border-t border-neutral-700 pt-4 sm:pt-6">
                                     <SlideImageGenerator
+                                        key={`${id}-${currentSlide}`}
                                         imagePrompt={currentSlideData.imagePrompt}
                                         slideTitle={currentSlideData.title}
                                         slideNumber={currentSlide + 1}
+                                        storyId={id}
                                     />
                                 </div>
 

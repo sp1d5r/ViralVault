@@ -7,6 +7,11 @@ import {
   generateEnhancedImages,
   generateSocialMediaImages,
   generateBlogImages,
+  getJobStatus,
+  getUserJobs,
+  getJobsByStoryAndSlide,
+  cancelJob,
+  cleanupContradictoryJobs,
   // validatePrompt,
   getAvailableModels,
   convertBase64ToDataUrl,
@@ -35,6 +40,15 @@ router.post('/social-media', generateSocialMediaImages);
 
 // Generate blog header images
 router.post('/blog', generateBlogImages);
+
+// Job management routes
+router.get('/jobs/:jobId', getJobStatus);
+router.get('/jobs', getUserJobs);
+router.get('/jobs/story/:storyId/slide/:slideNumber', getJobsByStoryAndSlide);
+router.post('/jobs/:jobId/cancel', cancelJob);
+
+// Utility routes
+router.post('/jobs/cleanup-contradictory', cleanupContradictoryJobs);
 
 // Validate prompt for content policy
 // router.post('/validate-prompt', validatePrompt);
