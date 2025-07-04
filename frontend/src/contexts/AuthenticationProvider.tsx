@@ -36,8 +36,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
 
   useEffect(() => {
+    console.log('AuthProvider: Setting up auth state listener');
+    
     const unsubscribe = FirebaseAuthService.onAuthStateChanged(async (firebaseUser: any) => {
+      console.log('AuthProvider: Auth state changed:', firebaseUser ? 'User logged in' : 'User logged out');
+      
       if (firebaseUser) {
+        console.log('AuthProvider: Setting authenticated state for user:', firebaseUser.uid);
         setAuthState({
           status: AuthStatus.AUTHENTICATED,
           user: { 
@@ -47,6 +52,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           },
         });
       } else {
+        console.log('AuthProvider: Setting unauthenticated state');
         setAuthState({ 
           status: AuthStatus.UNAUTHENTICATED,
           user: null,
@@ -54,7 +60,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      console.log('AuthProvider: Cleaning up auth state listener');
+      unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string, onSuccess?: () => void, onFailure?: (error: any) => void) => {

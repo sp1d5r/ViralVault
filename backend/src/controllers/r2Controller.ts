@@ -214,4 +214,89 @@ export const checkFileExists = async (req: Request, res: Response): Promise<void
     });
     return;
   }
+};
+
+export const testR2Upload = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { base64Data, fileName, userId } = req.body;
+
+    if (!base64Data) {
+      res.status(400).json({ error: 'base64Data is required' });
+      return;
+    }
+
+    if (!fileName) {
+      res.status(400).json({ error: 'fileName is required' });
+      return;
+    }
+
+    if (!userId) {
+      res.status(400).json({ error: 'userId is required' });
+      return;
+    }
+
+    console.log('Test R2 Upload - Input:', {
+      fileName,
+      userId,
+      base64DataLength: base64Data.length,
+      base64DataPreview: base64Data.substring(0, 100) + '...'
+    });
+
+    // Test the R2 upload
+    const imageUrl = await r2Service.uploadBase64Image(
+      base64Data,
+      fileName,
+      userId,
+      'image/png'
+    );
+
+    console.log('Test R2 Upload - Success:', { imageUrl });
+
+    res.json({
+      success: true,
+      data: {
+        imageUrl,
+        fileName,
+        userId,
+        uploadedAt: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('Test R2 Upload - Error:', error);
+    res.status(500).json({ 
+      error: 'Failed to upload to R2',
+      details: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+  }
+};
+
+export const testR2Connection = async (req: Request, res: Response): Promise<void> => {
+  try {
+    console.log('Testing R2 connection...');
+    
+    // Test if we can list files (this will test the connection)
+    const testUserId = 'test-user';
+    const files = await r2Service.listUserFiles(testUserId);
+    
+    console.log('R2 connection test successful, found files:', files.length);
+
+    res.json({
+      success: true,
+      data: {
+        connection: 'successful',
+        filesFound: files.length,
+        timestamp: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('R2 connection test failed:', error);
+    res.status(500).json({ 
+      error: 'R2 connection test failed',
+      details: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+  }
 }; 

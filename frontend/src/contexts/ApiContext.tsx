@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useCallback, useState } from 'react';
+import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
 import { useAuth } from './AuthenticationProvider';
 import {FirebaseAuthService} from 'shared';
+import { initializeImageGenerationService } from '../lib/imageGeneration';
 
 interface ApiContextType {
   fetchWithAuth: (endpoint: string, options?: RequestInit) => Promise<Response>;
@@ -43,6 +44,11 @@ export const ApiProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     return response;
   }, [authState.user, apiUrl]);
+
+  // Initialize image generation service when fetchWithAuth is available
+  useEffect(() => {
+    initializeImageGenerationService(fetchWithAuth);
+  }, [fetchWithAuth]);
 
   return (
     <ApiContext.Provider value={{ fetchWithAuth, apiUrl, setApiUrl }}>

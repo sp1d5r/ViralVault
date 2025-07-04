@@ -1,3 +1,5 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
 interface ImageGenerationOptions {
   prompt: string;
   size?: 'auto' | '1024x1024' | '1024x1536' | '1536x1024';
@@ -5,10 +7,13 @@ interface ImageGenerationOptions {
   format?: 'png' | 'jpeg' | 'webp';
   compression?: number;
   background?: 'auto' | 'transparent' | 'opaque';
+  storyId?: string;
+  slideNumber?: number;
 }
 
 interface ImageGenerationResult {
-  base64Data: string;
+  base64Data?: string;
+  imageUrl?: string;
   revisedPrompt?: string;
   size: string;
   model: string;
@@ -38,6 +43,20 @@ interface ApiResponse<T> {
   data: T;
   error?: string;
   details?: string;
+}
+
+interface JobStatus {
+  success: boolean;
+  job: {
+    jobId: string;
+    status: string;
+    progress?: number;
+    result?: any; // The result can be either ImageGenerationResult[] or a single object with imageUrl
+    error?: string;
+    createdAt: number;
+    completedAt?: number;
+  };
+  warning?: string;
 }
 
 export class ImageGenerationService {
@@ -76,8 +95,47 @@ export class ImageGenerationService {
   /**
    * Get job status
    */
-  async getJobStatus(jobId: string): Promise<{
-    job: {
+  async getJobStatus(jobId: string): Promise<JobStatus> {
+    const response = await this.fetchWithAuth(`api/images/jobs/${jobId}`, {
+      method: 'GET',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to get job status: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    
+    console.log('getJobStatus raw response:', result);
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to get job status');
+    }
+    
+    if (!result.job) {
+      throw new Error('Invalid response structure from job status API');
+    }
+    
+    return result;
+  }
+
+  /**
+   * Get jobs by story and slide
+   */
+  async getJobsByStoryAndSlide(storyId: string, slideNumber: number): Promise<{
+    jobId: string;
+    status: string;
+    progress?: number;
+    result?: ImageGenerationResult[];
+    error?: string;
+    createdAt: number;
+    completedAt?: number;
+  }[]> {
+    const response = await this.fetchWithAuth(`api/images/jobs/story/${storyId}/slide/${slideNumber}`, {
+      method: 'GET',
+    });
+
+    const result: ApiResponse<{
       jobId: string;
       status: string;
       progress?: number;
@@ -85,64 +143,8 @@ export class ImageGenerationService {
       error?: string;
       createdAt: number;
       completedAt?: number;
-    };
-    warning?: string;
-  }> {
-    const response = await this.fetchWithAuth(`api/images/jobs/${jobId}`, {
-      method: 'GET',
-    });
-
-    const result: ApiResponse<{
-      job: any;
-      warning?: string;
-    }> = await response.json();
+    }[]> = await response.json();
     return result.data;
-  }
-
-  /**
-   * Poll job status until completion
-   */
-  async pollJobStatus(
-    jobId: string,
-    onProgress?: (progress: number, status: string) => void,
-    maxAttempts: number = 60, // 5 minutes with 5-second intervals
-    intervalMs: number = 5000
-  ): Promise<ImageGenerationResult[]> {
-    let attempts = 0;
-
-    while (attempts < maxAttempts) {
-      try {
-        const { job } = await this.getJobStatus(jobId);
-        
-        if (onProgress && job.progress !== undefined) {
-          onProgress(job.progress, job.status);
-        }
-
-        if (job.status === 'completed' && job.result) {
-          return job.result;
-        }
-
-        if (job.status === 'failed') {
-          throw new Error(job.error || 'Job failed');
-        }
-
-        // Wait before next poll
-        await new Promise(resolve => setTimeout(resolve, intervalMs));
-        attempts++;
-      } catch (error) {
-        console.error(`Error polling job status (attempt ${attempts + 1}):`, error);
-        attempts++;
-        
-        if (attempts >= maxAttempts) {
-          throw new Error('Job polling timed out');
-        }
-        
-        // Wait before retry
-        await new Promise(resolve => setTimeout(resolve, intervalMs));
-      }
-    }
-
-    throw new Error('Job polling timed out');
   }
 
   /**
@@ -291,6 +293,86 @@ export class ImageGenerationService {
     });
   }
 }
+
+// Create singleton instance - will be initialized with fetchWithAuth later
+let imageGenerationService: ImageGenerationService;
+
+export const initializeImageGenerationService = (fetchWithAuth: (url: string, options?: RequestInit) => Promise<Response>) => {
+  imageGenerationService = new ImageGenerationService(fetchWithAuth);
+};
+
+// TanStack Query hooks for professional job management
+export const useJobStatus = (jobId: string | null, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ['jobStatus', jobId],
+    queryFn: () => {
+      if (!imageGenerationService) {
+        throw new Error('ImageGenerationService not initialized');
+      }
+      return imageGenerationService.getJobStatus(jobId!);
+    },
+    enabled: !!jobId && enabled,
+    refetchInterval: (query) => {
+      // Stop polling when job is completed or failed
+      if (query.state.data?.job?.status === 'completed' || query.state.data?.job?.status === 'failed') {
+        return false;
+      }
+      // Poll every 8 seconds for active jobs
+      return 8000;
+    },
+    refetchIntervalInBackground: false,
+    retry: 1,
+    staleTime: 0,
+  });
+};
+
+export const useGenerateImage = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (options: ImageGenerationOptions) => {
+      if (!imageGenerationService) {
+        throw new Error('ImageGenerationService not initialized');
+      }
+      return imageGenerationService.generateImagesAsync(options);
+    },
+    onSuccess: (data) => {
+      // Invalidate and refetch job status when a new job is created
+      queryClient.invalidateQueries({ queryKey: ['jobStatus', data.jobId] });
+    },
+  });
+};
+
+export const useCancelJob = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (jobId: string) => {
+      if (!imageGenerationService) {
+        throw new Error('ImageGenerationService not initialized');
+      }
+      return imageGenerationService.cancelJob(jobId);
+    },
+    onSuccess: (_, jobId) => {
+      // Invalidate job status when job is cancelled
+      queryClient.invalidateQueries({ queryKey: ['jobStatus', jobId] });
+    },
+  });
+};
+
+export const useJobsByStoryAndSlide = (storyId: string | null, slideNumber: number | null) => {
+  return useQuery({
+    queryKey: ['jobsByStoryAndSlide', storyId, slideNumber],
+    queryFn: () => {
+      if (!imageGenerationService) {
+        throw new Error('ImageGenerationService not initialized');
+      }
+      return imageGenerationService.getJobsByStoryAndSlide(storyId!, slideNumber!);
+    },
+    enabled: !!storyId && !!slideNumber,
+    staleTime: 30000, // 30 seconds
+  });
+};
 
 // Example usage with useApi hook:
 // import { useApi } from '../contexts/ApiContext';

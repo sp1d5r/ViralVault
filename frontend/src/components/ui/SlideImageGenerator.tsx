@@ -1,263 +1,484 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '../shadcn/card';
 import { Button } from '../shadcn/button';
 import { Badge } from '../shadcn/badge';
-import { Image, Download, Sparkles, AlertCircle, X } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../shadcn/select';
+import { Image, Download, Sparkles, AlertCircle, X, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { useApi } from '../../contexts/ApiContext';
 import { useToast } from '../../contexts/ToastProvider';
-import { ImageGenerationService } from '../../lib/imageGeneration';
+import { useJobStatus, useGenerateImage, useCancelJob, useJobsByStoryAndSlide } from '../../lib/imageGeneration';
 
 interface SlideImageGeneratorProps {
   imagePrompt: string;
   slideTitle: string;
   slideNumber: number;
+  storyId?: string;
 }
 
 interface ImageGenerationStatus {
   status: 'idle' | 'generating' | 'completed' | 'error';
   imageData?: string;
+  imageUrl?: string;
   error?: string;
   progress?: number;
   jobId?: string;
+}
+
+interface JobOption {
+  jobId: string;
+  status: string;
+  progress?: number;
+  createdAt: number;
+  prompt: string;
+  result?: {
+    imageUrl?: string;
+    base64Data?: string;
+  };
+  error?: string;
+  completedAt?: number;
 }
 
 export const SlideImageGenerator: React.FC<SlideImageGeneratorProps> = ({
   imagePrompt,
   slideTitle,
   slideNumber,
+  storyId,
 }) => {
   const { fetchWithAuth } = useApi();
   const [imageStatus, setImageStatus] = useState<ImageGenerationStatus>({ status: 'idle' });
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const imageService = new ImageGenerationService(fetchWithAuth);
+  // TanStack Query hooks
+  const generateImageMutation = useGenerateImage();
+  const cancelJobMutation = useCancelJob();
+  
+  // Get jobs for this story and slide
+  const { 
+    data: jobsData, 
+    isLoading: jobsLoading, 
+    error: jobsError,
+    refetch: refetchJobs 
+  } = useJobsByStoryAndSlide(storyId || null, slideNumber);
 
-  const generateImage = async () => {
-    if (isGenerating) return;
+  // Get status of selected job
+  const { 
+    data: jobStatusData, 
+    isLoading: jobStatusLoading,
+    error: jobStatusError 
+  } = useJobStatus(selectedJobId, !!selectedJobId);
 
-    setIsGenerating(true);
-    setImageStatus({ status: 'generating', progress: 0 });
+  // Convert jobs data to JobOption format
+  const availableJobs: JobOption[] = React.useMemo(() => {
+    if (!jobsData) return [];
+    
+    return jobsData.map((job: any) => ({
+      jobId: job.jobId,
+      status: job.status,
+      progress: job.progress,
+      createdAt: job.createdAt,
+      prompt: job.prompt,
+      result: job.result,
+      error: job.error,
+      completedAt: job.completedAt,
+    }));
+  }, [jobsData]);
 
-    try {
-      // Enhanced prompt for better results
-      const enhancedPrompt = `${imagePrompt}, high quality, detailed, professional, suitable for social media, vibrant colors, modern design`;
-
-      // Start async image generation
-      const { jobId } = await imageService.generateImagesAsync({
-        prompt: enhancedPrompt,
-        size: '1024x1536',
-        quality: 'high',
-        format: 'png',
+  // Update image status based on job status
+  useEffect(() => {
+    if (jobStatusData?.job) {
+      const job = jobStatusData.job;
+      
+      console.log('Processing job status:', {
+        status: job.status,
+        hasResult: !!job.result,
+        resultType: typeof job.result,
+        isArray: Array.isArray(job.result),
+        resultKeys: job.result ? Object.keys(job.result) : null,
+        error: job.error
       });
-
-      setImageStatus(prev => ({ ...prev, jobId }));
-
-      // Poll for completion
-      const results = await imageService.pollJobStatus(
-        jobId,
-        (progress, status) => {
-          setImageStatus(prev => ({ ...prev, progress }));
-        },
-        60, // 5 minutes max
-        3000 // Poll every 3 seconds
-      );
-
-      if (results && results.length > 0) {
-        const imageResult = results[0];
+      
+      if (job.status === 'completed' && job.result && !job.error) {
+        // Handle both array and single result formats
+        const result = Array.isArray(job.result) ? job.result[0] : job.result;
+        console.log('Setting completed status with result:', result);
         setImageStatus({
           status: 'completed',
-          imageData: imageResult.base64Data,
+          imageData: result.base64Data,
+          imageUrl: result.imageUrl,
           progress: 100,
+          jobId: job.jobId,
         });
+      } else if (job.status === 'completed' && job.error) {
+        console.log('Setting error status:', job.error);
+        setImageStatus({
+          status: 'error',
+          error: job.error,
+          jobId: job.jobId,
+        });
+      } else if (['in_progress', 'queued', 'processing'].includes(job.status)) {
+        console.log('Setting generating status, progress:', job.progress);
+        setImageStatus({
+          status: 'generating',
+          progress: job.progress || 0,
+          jobId: job.jobId,
+        });
+      } else if (job.status === 'failed') {
+        console.log('Setting failed status:', job.error);
+        setImageStatus({
+          status: 'error',
+          error: job.error || 'Job failed',
+          jobId: job.jobId,
+        });
+      }
+    }
+  }, [jobStatusData]);
 
-        toast({
-          title: "Image Generated!",
-          description: `Successfully created image for slide ${slideNumber}`,
+  // Debug image status changes
+  useEffect(() => {
+    if (imageStatus.status === 'completed') {
+      console.log('Image status completed:', { 
+        imageUrl: imageStatus.imageUrl, 
+        hasImageData: !!imageStatus.imageData,
+        jobId: imageStatus.jobId 
+      });
+    }
+  }, [imageStatus]);
+
+  // Reset state when slide number changes
+  useEffect(() => {
+    setImageStatus({ status: 'idle' });
+    setSelectedJobId(null);
+  }, [slideNumber]);
+
+  // Set initial selected job when jobs load
+  useEffect(() => {
+    if (availableJobs.length > 0 && !selectedJobId) {
+      const latestJob = availableJobs[0];
+      setSelectedJobId(latestJob.jobId);
+    }
+  }, [availableJobs, selectedJobId]);
+
+  const generateImage = async () => {
+    try {
+      const options = {
+        prompt: imagePrompt,
+        size: '1024x1536' as const,
+        quality: 'high' as const,
+        format: 'png' as const,
+        storyId,
+        slideNumber,
+      };
+
+      const result = await generateImageMutation.mutateAsync(options);
+      
+      if (result.jobId) {
+        setSelectedJobId(result.jobId);
+        setImageStatus({
+          status: 'generating',
+          progress: 0,
+          jobId: result.jobId,
         });
-      } else {
-        throw new Error('No image data received');
+        
+        toast({
+          title: 'Image Generation Started',
+          description: 'Your image is being generated. This may take a few minutes.',
+        });
+        
+        // Refetch jobs to update the list
+        refetchJobs();
       }
     } catch (error) {
       console.error('Error generating image:', error);
-      setImageStatus({
-        status: 'error',
-        error: error instanceof Error ? error.message : 'Failed to generate image',
-      });
-
-      toast({
-        title: "Generation Failed",
-        description: "Failed to generate image. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGenerating(false);
+              toast({
+          title: 'Generation Failed',
+          description: error instanceof Error ? error.message : 'Failed to start image generation',
+          variant: 'destructive',
+        });
     }
   };
 
   const cancelGeneration = async () => {
-    if (imageStatus.jobId) {
-      try {
-        await imageService.cancelJob(imageStatus.jobId);
-        setImageStatus({ status: 'idle' });
-        toast({
-          title: "Generation Cancelled",
-          description: "Image generation has been cancelled.",
+    if (!selectedJobId) return;
+    
+    try {
+      await cancelJobMutation.mutateAsync(selectedJobId);
+              toast({
+          title: 'Generation Cancelled',
+          description: 'Image generation has been cancelled.',
         });
-      } catch (error) {
-        console.error('Error cancelling job:', error);
-      }
+    } catch (error) {
+      console.error('Error cancelling job:', error);
+              toast({
+          title: 'Cancellation Failed',
+          description: 'Failed to cancel image generation',
+          variant: 'destructive',
+        });
     }
   };
 
   const downloadImage = () => {
-    if (imageStatus.imageData) {
-      const link = document.createElement('a');
-      link.href = `data:image/png;base64,${imageStatus.imageData}`;
-      link.download = `slide-${slideNumber}-${slideTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    const imageUrl = imageStatus.imageUrl;
+    if (!imageUrl) return;
+
+    const link = document.createElement('a');
+    link.href = imageUrl;
+    link.download = `${slideTitle}-slide-${slideNumber}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleJobSelection = (jobId: string) => {
+    setSelectedJobId(jobId);
+    
+    // Find the selected job to update status immediately
+    const selectedJob = availableJobs.find(job => job.jobId === jobId);
+    if (selectedJob) {
+      if (selectedJob.status === 'completed' && selectedJob.result && !selectedJob.error) {
+        setImageStatus({
+          status: 'completed',
+          imageData: selectedJob.result.base64Data,
+          imageUrl: selectedJob.result.imageUrl,
+          progress: 100,
+          jobId: selectedJob.jobId,
+        });
+      } else if (selectedJob.status === 'completed' && selectedJob.error) {
+        setImageStatus({
+          status: 'error',
+          error: selectedJob.error,
+          jobId: selectedJob.jobId,
+        });
+      } else if (['in_progress', 'queued', 'processing'].includes(selectedJob.status)) {
+        setImageStatus({
+          status: 'generating',
+          progress: selectedJob.progress || 0,
+          jobId: selectedJob.jobId,
+        });
+      } else if (selectedJob.status === 'failed') {
+        setImageStatus({
+          status: 'error',
+          error: selectedJob.error || 'Job failed',
+          jobId: selectedJob.jobId,
+        });
+      }
     }
   };
 
   const getStatusIcon = () => {
     switch (imageStatus.status) {
       case 'generating':
-        return <Sparkles className="h-3 w-3 animate-pulse" />;
+        return <Clock className="h-4 w-4 animate-spin" />;
       case 'completed':
-        return <Image className="h-3 w-3" />;
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'error':
-        return <AlertCircle className="h-3 w-3" />;
+        return <XCircle className="h-4 w-4 text-red-500" />;
       default:
-        return <Image className="h-3 w-3" />;
+        return <Image className="h-4 w-4" />;
     }
   };
 
   const getStatusText = () => {
     switch (imageStatus.status) {
       case 'generating':
-        return imageStatus.progress ? `Generating (${imageStatus.progress}%)` : 'Generating...';
+        return 'Generating...';
       case 'completed':
         return 'Completed';
       case 'error':
         return 'Error';
       default:
-        return 'Ready';
+        return 'Ready to generate';
     }
   };
 
   const getStatusColor = () => {
     switch (imageStatus.status) {
       case 'generating':
-        return 'bg-blue-500/20 border-blue-500/30 text-blue-300';
+        return 'bg-blue-100 text-blue-800';
       case 'completed':
-        return 'bg-green-500/20 border-green-500/30 text-green-300';
+        return 'bg-green-100 text-green-800';
       case 'error':
-        return 'bg-red-500/20 border-red-500/30 text-red-300';
+        return 'bg-red-100 text-red-800';
       default:
-        return 'bg-neutral-500/20 border-neutral-500/30 text-neutral-300';
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   return (
-    <Card className="bg-neutral-800/50 border-neutral-700">
-      <CardContent className="p-4">
-        <div className="space-y-4">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Image className="h-4 w-4 text-neutral-400" />
-              <span className="text-sm font-medium text-white">Slide Image</span>
-            </div>
-            <Badge 
-              variant="outline" 
-              className={`text-xs ${getStatusColor()}`}
-            >
-              {getStatusIcon()}
-              <span className="ml-1">{getStatusText()}</span>
-            </Badge>
+    <Card className="w-full">
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2">
+            <Sparkles className="h-5 w-5 text-purple-500" />
+            <h3 className="text-lg font-semibold">Slide {slideNumber} Image</h3>
           </div>
+          <Badge className={getStatusColor()}>
+            {getStatusIcon()}
+            <span className="ml-1">{getStatusText()}</span>
+          </Badge>
+        </div>
 
-          {/* Image Display */}
-          {imageStatus.status === 'completed' && imageStatus.imageData && (
-            <div className="relative">
-              <img
-                src={`data:image/png;base64,${imageStatus.imageData}`}
-                alt={`Generated image for ${slideTitle}`}
-                className="w-full h-64 object-cover rounded-lg border border-neutral-600"
+        {/* Job Selection Dropdown */}
+        {availableJobs.length > 0 && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Previous Generations
+            </label>
+            <Select value={selectedJobId || ''} onValueChange={handleJobSelection}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a job" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableJobs.map((job) => (
+                  <SelectItem key={job.jobId} value={job.jobId}>
+                    <div className="flex items-center justify-between w-full">
+                      <span className="truncate">{job.prompt.substring(0, 50)}...</span>
+                      <Badge variant="outline" className="ml-2">
+                        {job.status}
+                      </Badge>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {/* Progress Bar */}
+        {imageStatus.status === 'generating' && (
+          <div className="mb-4">
+            <div className="flex justify-between text-sm text-gray-600 mb-1">
+              <span>Progress</span>
+              <span>{imageStatus.progress || 0}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${imageStatus.progress || 0}%` }}
               />
-              <div className="absolute top-2 right-2">
+            </div>
+          </div>
+        )}
+
+        {/* Error Display */}
+        {imageStatus.status === 'error' && imageStatus.error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <div className="flex items-center">
+              <AlertCircle className="h-4 w-4 text-red-500 mr-2" />
+              <span className="text-red-700 text-sm">{imageStatus.error}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Image Display */}
+        {imageStatus.status === 'completed' && (imageStatus.imageUrl || imageStatus.imageData) && (
+          <div className="mb-4">
+            <div className="relative group">
+              <img
+                src={imageStatus.imageUrl || `data:image/png;base64,${imageStatus.imageData}`}
+                alt={`Generated image for slide ${slideNumber}`}
+                className="w-full h-64 object-cover rounded-lg border"
+                onLoad={() => console.log('Image loaded successfully')}
+                onError={(e) => {
+                  console.error('Image failed to load:', e);
+                  console.error('Image src was:', imageStatus.imageUrl || `data:image/png;base64,${imageStatus.imageData}`);
+                  toast({
+                    title: 'Image Load Error',
+                    description: 'Failed to load the generated image',
+                    variant: 'destructive',
+                  });
+                }}
+              />
+              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 rounded-lg flex items-center justify-center">
                 <Button
-                  size="sm"
                   onClick={downloadImage}
-                  className="bg-black/50 hover:bg-black/70 text-white border-0"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                  size="sm"
                 >
-                  <Download className="h-3 w-3" />
+                  <Download className="h-4 w-4 mr-1" />
+                  Download
                 </Button>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Generation Placeholder */}
-          {imageStatus.status === 'generating' && (
-            <div className="w-full h-64 bg-neutral-700/30 rounded-lg border border-neutral-600 flex items-center justify-center">
-              <div className="flex items-center gap-3 text-neutral-400">
-                <Sparkles className="h-6 w-6 animate-pulse" />
-                <span>Generating your image...</span>
-              </div>
-            </div>
-          )}
-
-          {/* Error State */}
-          {imageStatus.status === 'error' && (
-            <div className="w-full h-64 bg-red-500/10 rounded-lg border border-red-500/20 flex items-center justify-center">
-              <div className="text-center text-red-400">
-                <AlertCircle className="h-8 w-8 mx-auto mb-2" />
-                <p className="text-sm">Failed to generate image</p>
-                <p className="text-xs text-red-300 mt-1">{imageStatus.error}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex gap-2">
+        {/* Action Buttons */}
+        <div className="flex space-x-2">
+          {imageStatus.status === 'idle' && (
             <Button
               onClick={generateImage}
-              disabled={isGenerating}
-              className="flex-1 bg-indigo-500/20 border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/30 disabled:opacity-50"
+              disabled={generateImageMutation.isPending}
+              className="flex-1"
             >
-              {isGenerating ? (
+              {generateImageMutation.isPending ? (
                 <>
-                  <Sparkles className="mr-2 h-4 w-4 animate-spin" />
-                  Generating...
+                  <Clock className="h-4 w-4 mr-2 animate-spin" />
+                  Starting...
                 </>
               ) : (
                 <>
-                  <Sparkles className="mr-2 h-4 w-4" />
+                  <Sparkles className="h-4 w-4 mr-2" />
                   Generate Image
                 </>
               )}
             </Button>
+          )}
 
-            {imageStatus.status === 'completed' && (
-              <Button
-                onClick={downloadImage}
-                variant="outline"
-                className="bg-green-500/10 border-green-500/30 text-green-300 hover:bg-green-500/20"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download
-              </Button>
-            )}
-          </div>
+          {imageStatus.status === 'generating' && (
+            <Button
+              onClick={cancelGeneration}
+              disabled={cancelJobMutation.isPending}
+              variant="outline"
+              className="flex-1"
+            >
+              {cancelJobMutation.isPending ? (
+                <>
+                  <Clock className="h-4 w-4 mr-2 animate-spin" />
+                  Cancelling...
+                </>
+              ) : (
+                <>
+                  <X className="h-4 w-4 mr-2" />
+                  Cancel Generation
+                </>
+              )}
+            </Button>
+          )}
 
-          {/* Prompt Preview */}
-          <div className="text-xs text-neutral-400">
-            <span className="font-medium">Prompt:</span> {imagePrompt.substring(0, 100)}
-            {imagePrompt.length > 100 && '...'}
-          </div>
+          {imageStatus.status === 'completed' && (
+            <Button onClick={generateImage} className="flex-1">
+              <Sparkles className="h-4 w-4 mr-2" />
+              Generate New Image
+            </Button>
+          )}
+
+          {imageStatus.status === 'error' && (
+            <Button onClick={generateImage} className="flex-1">
+              <Sparkles className="h-4 w-4 mr-2" />
+              Retry Generation
+            </Button>
+          )}
         </div>
+
+        {/* Loading States */}
+        {(jobsLoading || jobStatusLoading) && (
+          <div className="mt-4 text-center text-sm text-gray-500">
+            Loading job information...
+          </div>
+        )}
+
+        {/* Error States */}
+        {(jobsError || jobStatusError) && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <div className="flex items-center">
+              <AlertCircle className="h-4 w-4 text-red-500 mr-2" />
+              <span className="text-red-700 text-sm">
+                {jobsError?.message || jobStatusError?.message || 'Failed to load job information'}
+              </span>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

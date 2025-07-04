@@ -51,7 +51,7 @@ app.use((req, res, next) => {
     // Use raw body for webhook
     next();
   } else {
-    express.json()(req, res, next);
+    express.json({ limit: '50mb' })(req, res, next);
   }
 });
 

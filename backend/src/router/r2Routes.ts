@@ -7,6 +7,8 @@ import {
   listUserFiles,
   getFileMetadata,
   checkFileExists,
+  testR2Upload,
+  testR2Connection,
 } from '../controllers/r2Controller';
 
 const router = express.Router();
@@ -31,5 +33,9 @@ router.get('/files/:key/metadata', getFileMetadata);
 
 // Check if file exists
 router.get('/files/:key/exists', checkFileExists);
+
+// Test endpoints (for debugging)
+router.post('/test-upload', testR2Upload);
+router.get('/test-connection', testR2Connection);
 
 export default router; 
