@@ -366,50 +366,12 @@ export class ImageGenerationService {
       'hate', 'discrimination', 'illegal', 'weapon', 'drug'
     ];
 
-    // Terms that commonly lead to unwanted UI/screenshot generation
-    const uiScreenshotTerms = [
-      'screenshot', 'screen shot', 'app interface', 'user interface', 'ui design',
-      'website', 'webpage', 'web page', 'mobile app', 'desktop app', 'application',
-      'software interface', 'computer screen', 'phone screen', 'tablet screen',
-      'monitor', 'display', 'dashboard', 'control panel', 'menu', 'navigation',
-      'button', 'icon', 'widget', 'window', 'dialog', 'popup', 'modal',
-      'browser', 'chrome', 'safari', 'firefox', 'edge', 'internet explorer',
-      'operating system', 'os', 'windows', 'macos', 'linux', 'android', 'ios',
-      'social media app', 'instagram app', 'facebook app', 'twitter app', 'tiktok app',
-      'youtube app', 'linkedin app', 'snapchat app', 'whatsapp app',
-      'email client', 'messaging app', 'chat app', 'video call', 'zoom app',
-      'slack app', 'discord app', 'telegram app', 'signal app',
-      'e-commerce', 'online store', 'shopping cart', 'checkout page',
-      'login page', 'signup page', 'registration page', 'profile page',
-      'settings page', 'preferences', 'account page', 'payment page',
-      'analytics dashboard', 'data visualization', 'chart', 'graph', 'metric',
-      'notification', 'alert', 'message', 'inbox', 'folder', 'file manager',
-      'calendar app', 'notes app', 'todo app', 'task manager', 'project management',
-      'crm', 'cms', 'content management', 'admin panel', 'backend interface',
-      'database', 'server', 'cloud storage', 'file sharing', 'collaboration tool',
-      'phone screen', 'tablet screen', 'computer screen', 'laptop screen',
-      'smartphone screen', 'mobile screen', 'device screen', 'app screen',
-      'interface screen', 'digital screen', 'touchscreen', 'touch screen'
-    ];
-
     const lowerPrompt = prompt.toLowerCase();
-    
-    // Check for forbidden content policy terms
     for (const term of forbiddenTerms) {
       if (lowerPrompt.includes(term)) {
         return {
           isValid: false,
           reason: `Prompt contains forbidden term: ${term}`
-        };
-      }
-    }
-
-    // Check for UI/screenshot terms that could lead to unwanted interface generation
-    for (const term of uiScreenshotTerms) {
-      if (lowerPrompt.includes(term)) {
-        return {
-          isValid: false,
-          reason: `Prompt may generate unwanted UI/screenshot content. Please focus on the story content, characters, and visual elements rather than interface elements.`
         };
       }
     }
