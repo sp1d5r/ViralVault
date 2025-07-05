@@ -227,6 +227,19 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
     const slide = story.generatedStory.slides.find(s => s.slideNumber === slideNumber);
     if (!slide) return;
 
+    // Check if character consistency is enabled and this is not the first slide
+    if (useCharacterConsistency && slideNumber > 1) {
+      const firstSlideState = slideStates.find(s => s.slideNumber === 1);
+      if (firstSlideState?.status !== 'completed') {
+        toast({
+          title: 'First Slide Required',
+          description: 'Please wait for the first slide to complete before generating subsequent slides with character consistency.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
     try {
       setSlideStates(prev => prev.map(state => 
         state.slideNumber === slideNumber 
@@ -304,6 +317,22 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
         }
         await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
         attempts++;
+      }
+      
+      // If character consistency is enabled, wait for first slide to complete before proceeding
+      if (useCharacterConsistency && slide.slideNumber === 1) {
+        const firstSlideState = slideStates.find(s => s.slideNumber === 1);
+        if (firstSlideState?.status !== 'completed') {
+          // Wait for first slide to complete
+          while (attempts < maxAttempts) {
+            const updatedSlideState = slideStates.find(s => s.slideNumber === 1);
+            if (updatedSlideState?.status === 'completed') {
+              break;
+            }
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            attempts++;
+          }
+        }
       }
       
       // If auto-generate is off, stop after first slide
@@ -648,12 +677,19 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
                   {slideState?.status === 'pending' && (
                     <Button
                       onClick={() => generateSlideImage(slide.slideNumber)}
-                      disabled={isGenerating}
+                      disabled={
+                        isGenerating || 
+                        (useCharacterConsistency && slide.slideNumber > 1 && 
+                         slideStates.find(s => s.slideNumber === 1)?.status !== 'completed')
+                      }
                       size="sm"
-                      className="flex-1 bg-indigo-500/10 border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20"
+                      className="flex-1 bg-indigo-500/10 border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Sparkles className="h-4 w-4 mr-1" />
-                      Generate
+                      {useCharacterConsistency && slide.slideNumber > 1 && 
+                       slideStates.find(s => s.slideNumber === 1)?.status !== 'completed' 
+                        ? 'Waiting for Slide 1' 
+                        : 'Generate'}
                     </Button>
                   )}
 
@@ -673,8 +709,12 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
                   {slideState?.status === 'completed' && (
                     <Button
                       onClick={() => generateSlideImage(slide.slideNumber)}
+                      disabled={
+                        useCharacterConsistency && slide.slideNumber > 1 && 
+                        slideStates.find(s => s.slideNumber === 1)?.status !== 'completed'
+                      }
                       size="sm"
-                      className="flex-1 bg-indigo-500/10 border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20"
+                      className="flex-1 bg-indigo-500/10 border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <RefreshCw className="h-4 w-4 mr-1" />
                       Regenerate
@@ -684,8 +724,12 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
                   {slideState?.status === 'error' && (
                     <Button
                       onClick={() => generateSlideImage(slide.slideNumber)}
+                      disabled={
+                        useCharacterConsistency && slide.slideNumber > 1 && 
+                        slideStates.find(s => s.slideNumber === 1)?.status !== 'completed'
+                      }
                       size="sm"
-                      className="flex-1 bg-indigo-500/10 border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20"
+                      className="flex-1 bg-indigo-500/10 border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Sparkles className="h-4 w-4 mr-1" />
                       Retry
@@ -697,6 +741,19 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
                 <div className="text-xs text-neutral-400">
                   <p className="line-clamp-3">{slide.content}</p>
                 </div>
+
+                {/* Character Consistency Warning */}
+                {useCharacterConsistency && slide.slideNumber > 1 && 
+                 slideStates.find(s => s.slideNumber === 1)?.status !== 'completed' && (
+                  <div className="p-2 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
+                    <div className="flex items-center">
+                      <AlertCircle className="h-3 w-3 text-yellow-500 mr-1" />
+                      <span className="text-yellow-400 text-xs">
+                        Waiting for Slide 1 to complete for character consistency
+                      </span>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           );
