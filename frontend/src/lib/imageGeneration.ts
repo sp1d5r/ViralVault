@@ -237,6 +237,36 @@ export class ImageGenerationService {
   }
 
   /**
+   * Generate images with character consistency using reference images from previous slides
+   */
+  async generateImagesWithConsistency(options: ImageGenerationOptions & {
+    useReferenceImage?: boolean;
+  }): Promise<ImageGenerationResult[]> {
+    const response = await this.fetchWithAuth('api/images/generate-with-consistency', {
+      method: 'POST',
+      body: JSON.stringify(options),
+    });
+
+    const result: ApiResponse<ImageGenerationResult[]> = await response.json();
+    return result.data;
+  }
+
+  /**
+   * Generate images asynchronously with character consistency
+   */
+  async generateImagesWithConsistencyAsync(options: ImageGenerationOptions & {
+    useReferenceImage?: boolean;
+  }): Promise<{ jobId: string; status: string }> {
+    const response = await this.fetchWithAuth('api/images/generate-with-consistency', {
+      method: 'POST',
+      body: JSON.stringify({ ...options, async: true }),
+    });
+
+    const result: ApiResponse<{ jobId: string; status: string }> = await response.json();
+    return result.data;
+  }
+
+  /**
    * Generate images for social media posts
    */
   async generateSocialMediaImages(
@@ -425,6 +455,23 @@ export const useJobsByStoryAndSlide = (storyId: string | null, slideNumber: numb
     },
     enabled: !!storyId,
     staleTime: 30000, // 30 seconds
+  });
+};
+
+export const useGenerateImageWithConsistency = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (options: ImageGenerationOptions & { useReferenceImage?: boolean }) => {
+      if (!imageGenerationService) {
+        throw new Error('ImageGenerationService not initialized');
+      }
+      return imageGenerationService.generateImagesWithConsistencyAsync(options);
+    },
+    onSuccess: (data) => {
+      // Invalidate and refetch job status when a new job is created
+      queryClient.invalidateQueries({ queryKey: ['jobStatus', data.jobId] });
+    },
   });
 };
 

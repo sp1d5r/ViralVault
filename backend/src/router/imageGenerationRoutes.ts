@@ -2,6 +2,7 @@ import express from 'express';
 import { authenticateToken } from '../middleware/auth';
 import {
   generateImages,
+  generateImagesWithConsistency,
   generateVariations,
   editImage,
   generateEnhancedImages,
@@ -26,6 +27,9 @@ router.use(authenticateToken);
 
 // Generate images with DALL-E
 router.post('/generate', generateImages);
+
+// Generate images with character consistency
+router.post('/generate-with-consistency', generateImagesWithConsistency);
 
 // Generate image variations
 router.post('/variations', generateVariations);

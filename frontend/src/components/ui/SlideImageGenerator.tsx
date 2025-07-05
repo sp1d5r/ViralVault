@@ -3,7 +3,8 @@ import { Card, CardContent } from '../shadcn/card';
 import { Button } from '../shadcn/button';
 import { Badge } from '../shadcn/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../shadcn/select';
-import { Image, Download, Sparkles, AlertCircle, X, Clock, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { Dialog, DialogContent } from '../shadcn/dialog';
+import { Image, Download, Sparkles, AlertCircle, X, Clock, CheckCircle, XCircle, RefreshCw, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
 import { useApi } from '../../contexts/ApiContext';
 import { useToast } from '../../contexts/ToastProvider';
 import { useJobStatus, useGenerateImage, useCancelJob, useJobsByStoryAndSlide, useRefreshImageUrl } from '../../lib/imageGeneration';
@@ -49,6 +50,10 @@ export const SlideImageGenerator: React.FC<SlideImageGeneratorProps> = ({
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [imageLoadRetries, setImageLoadRetries] = useState(0);
   const [isRefreshingUrl, setIsRefreshingUrl] = useState(false);
+  const [hasUserSelectedJob, setHasUserSelectedJob] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewScale, setPreviewScale] = useState(1);
+  const [previewRotation, setPreviewRotation] = useState(0);
   const { toast } = useToast();
 
   // TanStack Query hooks
@@ -171,16 +176,24 @@ export const SlideImageGenerator: React.FC<SlideImageGeneratorProps> = ({
     setSelectedJobId(null);
     setImageLoadRetries(0);
     setIsRefreshingUrl(false);
+    setHasUserSelectedJob(false);
   }, [slideNumber]);
 
-  // Set initial selected job when jobs load
+  // Set initial selected job when jobs load (only if user hasn't manually selected)
   useEffect(() => {
     console.log('Jobs loaded:', {
       availableJobs: availableJobs.length,
       jobsLoading,
       selectedJobId,
+      hasUserSelectedJob,
       currentStatus: imageStatus.status
     });
+    
+    // Don't auto-select if user has manually selected a job
+    if (hasUserSelectedJob) {
+      console.log('User has manually selected a job, skipping auto-selection');
+      return;
+    }
     
     if (availableJobs.length > 0) {
       // Find the most recent completed job, or fall back to the latest job
@@ -240,7 +253,7 @@ export const SlideImageGenerator: React.FC<SlideImageGeneratorProps> = ({
       // Show loading state while jobs are being fetched
       setImageStatus({ status: 'idle' });
     }
-  }, [availableJobs, selectedJobId, jobsLoading]);
+  }, [availableJobs, selectedJobId, jobsLoading, hasUserSelectedJob]);
 
   const handleImageLoadError = async (imageUrl: string) => {
     console.error('Image failed to load, attempting URL refresh...');
@@ -354,8 +367,37 @@ export const SlideImageGenerator: React.FC<SlideImageGeneratorProps> = ({
     document.body.removeChild(link);
   };
 
+  const openPreview = () => {
+    setPreviewScale(1);
+    setPreviewRotation(0);
+    setIsPreviewOpen(true);
+  };
+
+  const closePreview = () => {
+    setIsPreviewOpen(false);
+  };
+
+  const zoomIn = () => {
+    setPreviewScale(prev => Math.min(prev * 1.5, 5));
+  };
+
+  const zoomOut = () => {
+    setPreviewScale(prev => Math.max(prev / 1.5, 0.1));
+  };
+
+  const rotateImage = () => {
+    setPreviewRotation(prev => (prev + 90) % 360);
+  };
+
+  const resetPreview = () => {
+    setPreviewScale(1);
+    setPreviewRotation(0);
+  };
+
   const handleJobSelection = (jobId: string) => {
+    console.log('User manually selected job:', jobId);
     setSelectedJobId(jobId);
+    setHasUserSelectedJob(true); // Mark that user has manually selected
     
     // Find the selected job to update status immediately
     const selectedJob = availableJobs.find(job => job.jobId === jobId);
@@ -543,6 +585,15 @@ export const SlideImageGenerator: React.FC<SlideImageGeneratorProps> = ({
               <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 rounded-lg flex items-center justify-center">
                 <div className="flex gap-2">
                   <Button
+                    onClick={openPreview}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    size="sm"
+                    variant="secondary"
+                  >
+                    <ZoomIn className="h-4 w-4 mr-1" />
+                    Preview
+                  </Button>
+                  <Button
                     onClick={downloadImage}
                     className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                     size="sm"
@@ -688,6 +739,100 @@ export const SlideImageGenerator: React.FC<SlideImageGeneratorProps> = ({
           </div>
         )}
       </CardContent>
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+      <DialogContent className="max-w-none w-screen h-screen p-0 bg-black/95">
+        <div className="relative w-full h-full flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 bg-black/50 backdrop-blur-sm border-b border-white/10">
+            <div className="flex items-center gap-4">
+              <h3 className="text-white font-semibold">Slide {slideNumber} Preview</h3>
+              <Badge variant="secondary" className="text-xs">
+                {Math.round(previewScale * 100)}% • {previewRotation}°
+              </Badge>
+            </div>
+            <Button
+              onClick={closePreview}
+              variant="ghost"
+              size="sm"
+              className="text-white hover:bg-white/10"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* Image Container */}
+          <div className="flex-1 flex items-center justify-center overflow-hidden p-4">
+            <div className="relative">
+              <img
+                src={imageStatus.imageUrl || `data:image/png;base64,${imageStatus.imageData}`}
+                alt={`Generated image for slide ${slideNumber}`}
+                className="max-w-none max-h-[80vh] transition-all duration-300 ease-out"
+                style={{
+                  transform: `scale(${previewScale}) rotate(${previewRotation}deg)`,
+                  transformOrigin: 'center',
+                }}
+                draggable={false}
+              />
+            </div>
+          </div>
+
+          {/* Controls */}
+          <div className="flex items-center justify-center gap-2 p-4 bg-black/50 backdrop-blur-sm border-t border-white/10">
+            <Button
+              onClick={zoomOut}
+              variant="outline"
+              size="sm"
+              className="text-white border-white/20 hover:bg-white/10"
+              disabled={previewScale <= 0.1}
+            >
+              <ZoomOut className="h-4 w-4 mr-1" />
+              Zoom Out
+            </Button>
+            
+            <Button
+              onClick={resetPreview}
+              variant="outline"
+              size="sm"
+              className="text-white border-white/20 hover:bg-white/10"
+            >
+              <RotateCw className="h-4 w-4 mr-1" />
+              Reset
+            </Button>
+            
+            <Button
+              onClick={rotateImage}
+              variant="outline"
+              size="sm"
+              className="text-white border-white/20 hover:bg-white/10"
+            >
+              <RotateCw className="h-4 w-4 mr-1" />
+              Rotate
+            </Button>
+            
+            <Button
+              onClick={zoomIn}
+              variant="outline"
+              size="sm"
+              className="text-white border-white/20 hover:bg-white/10"
+              disabled={previewScale >= 5}
+            >
+              <ZoomIn className="h-4 w-4 mr-1" />
+              Zoom In
+            </Button>
+            
+            <Button
+              onClick={downloadImage}
+              variant="outline"
+              size="sm"
+              className="text-white border-white/20 hover:bg-white/10"
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Download
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
     </Card>
   );
-}; 
+};

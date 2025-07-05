@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { FirebaseDatabaseService } from 'shared';
 
 export interface ImageGenerationOptions {
   prompt: string;
@@ -445,6 +446,194 @@ export class ImageGenerationService {
       backgrounds: ['auto', 'transparent', 'opaque'],
       compression: '0-100 (for JPEG and WebP)',
     };
+  }
+
+  /**
+   * Download image from URL and convert to base64
+   */
+  async downloadImageAsBase64(imageUrl: string): Promise<string> {
+    try {
+      console.log('Downloading image from URL:', imageUrl);
+      
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to download image: ${response.status} ${response.statusText}`);
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const base64 = buffer.toString('base64');
+      
+      console.log('Successfully converted image to base64, length:', base64.length);
+      return base64;
+    } catch (error) {
+      console.error('Error downloading image as base64:', error);
+      throw new Error(`Failed to download image as base64: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Get the most recent successful image from a specific slide for character consistency
+   */
+  async getReferenceImageForSlide(storyId: string, slideNumber: number, userId: string): Promise<string | null> {
+    try {
+      console.log('Getting reference image for slide:', { storyId, slideNumber, userId });
+      
+      // Get all jobs for this story and slide
+      const jobs = await new Promise<any[]>((resolve, reject) => {
+        FirebaseDatabaseService.queryDocuments(
+          'image-generation-jobs',
+          'userId',
+          'createdAt',
+          userId,
+          (docs: any[]) => {
+            const filteredJobs = docs?.filter((job: any) => {
+              const storyIdMatch = job.storyId === storyId;
+              const jobSlideNumber = typeof job.slideNumber === 'string' ? parseInt(job.slideNumber) : job.slideNumber;
+              const targetSlideNumber = slideNumber;
+              return storyIdMatch && jobSlideNumber === targetSlideNumber;
+            }) || [];
+            resolve(filteredJobs);
+          },
+          (error: Error) => reject(error)
+        );
+      });
+
+      if (jobs.length === 0) {
+        console.log('No jobs found for slide:', slideNumber);
+        return null;
+      }
+
+      // Sort by creation date (most recent first) and find the first successful one with an image URL
+      const sortedJobs = jobs.sort((a, b) => b.createdAt - a.createdAt);
+      
+      console.log('Available jobs for slide', slideNumber, ':', sortedJobs.map(job => ({
+        jobId: job.jobId,
+        status: job.status,
+        hasResult: !!job.result,
+        hasImageUrl: !!job.result?.imageUrl,
+        createdAt: job.createdAt
+      })));
+      
+      // First, try to find the most recent completed job with an image URL
+      let successfulJob = sortedJobs.find(job => 
+        job.status === 'completed' && 
+        job.result && 
+        job.result.imageUrl
+      );
+      
+      // If no completed job with image URL found, look for any job with image URL
+      // (this handles cases where a job might be completed but not yet updated in Firebase)
+      if (!successfulJob) {
+        successfulJob = sortedJobs.find(job => 
+          job.result && 
+          job.result.imageUrl
+        );
+      }
+      
+      // If still no job with image URL, look for the most recent completed job
+      // (it might have the image URL in a different format or we can try to refresh it)
+      if (!successfulJob) {
+        successfulJob = sortedJobs.find(job => 
+          job.status === 'completed'
+        );
+      }
+
+      if (!successfulJob) {
+        console.log('No successful jobs found for slide:', slideNumber);
+        return null;
+      }
+
+      console.log('Found successful job for reference:', {
+        jobId: successfulJob.jobId,
+        status: successfulJob.status,
+        hasResult: !!successfulJob.result,
+        hasImageUrl: !!successfulJob.result?.imageUrl,
+        imageUrl: successfulJob.result?.imageUrl
+      });
+
+      // Download the image and convert to base64
+      const base64Image = await this.downloadImageAsBase64(successfulJob.result.imageUrl);
+      return base64Image;
+    } catch (error) {
+      console.error('Error getting reference image:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Generate images with character consistency using a reference image
+   */
+  async generateImagesWithConsistency(
+    options: ImageGenerationOptions & { 
+      storyId?: string; 
+      slideNumber?: number; 
+      userId?: string;
+      useReferenceImage?: boolean;
+    }
+  ): Promise<ImageGenerationResult[]> {
+    const {
+      prompt,
+      size = 'auto',
+      quality = 'auto',
+      format = 'png',
+      compression,
+      background = 'auto',
+      storyId,
+      slideNumber,
+      userId,
+      useReferenceImage = true,
+    } = options;
+
+    try {
+      let referenceImage: string | null = null;
+
+      // If we should use a reference image and we have the necessary parameters
+      if (useReferenceImage && storyId && slideNumber && userId) {
+        // Try to get reference image from the previous slide (slideNumber - 1)
+        const referenceSlideNumber = slideNumber - 1;
+        if (referenceSlideNumber > 0) {
+          console.log('Attempting to get reference image from slide:', referenceSlideNumber);
+          referenceImage = await this.getReferenceImageForSlide(storyId, referenceSlideNumber, userId);
+        }
+      }
+
+      // Build the image generation tool configuration
+      const imageGenerationTool: any = {
+        type: 'image_generation',
+      };
+
+      // Only add properties if they're not 'auto' or default
+      if (size !== 'auto') imageGenerationTool.size = size;
+      if (quality !== 'auto') imageGenerationTool.quality = quality;
+      if (format !== 'png') imageGenerationTool.output_format = format;
+      if (background !== 'auto') imageGenerationTool.background = background;
+      if (compression !== undefined && (format === 'jpeg' || format === 'webp')) {
+        imageGenerationTool.output_compression = compression;
+      }
+
+      // For the Responses API, we need to use a different input format
+      // The API expects a single text input, not an array of mixed types
+      let finalPrompt = prompt;
+
+      // If we have a reference image, enhance the prompt to mention character consistency
+      if (referenceImage) {
+        console.log('Using reference image for consistency, base64 length:', referenceImage.length);
+        finalPrompt = `${prompt}, maintain character consistency with the reference image, same character design and style`;
+      }
+
+      const response = await this.client.responses.create({
+        model: this.defaultModel,
+        input: finalPrompt,
+        tools: [imageGenerationTool],
+        background: false, // Synchronous processing
+      });
+
+      return this.extractImageResults(response);
+    } catch (error) {
+      console.error('Error generating images with consistency:', error);
+      throw new Error(`Failed to generate images with consistency: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 }
 
