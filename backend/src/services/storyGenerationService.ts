@@ -129,6 +129,10 @@ For each slide, create:
   - Relevant to the slide content and narrative
   - Engaging and attention-grabbing for social media
   - Include specific visual elements that represent the story and characters
+  - Focus on characters, scenes, emotions, and story elements - NOT user interfaces, screenshots, or app designs
+  - Avoid any mention of phone screens, computer screens, app interfaces, or digital UI elements
+  - You CAN show phones/devices from the back or side, people holding devices, or using devices naturally
+  - Instead, focus on real-world scenes, people, emotions, and visual storytelling elements
 - A brief, punchy caption for text overlay in TikTok style. This should be 1-2 lines, designed to grab attention and drive the story forward. ${request.captionPrompt ? `Use this custom instruction for the caption style: "${request.captionPrompt}"` : 'Make it suitable for overlaying on the image, and keep it concise and impactful.'}
 
 The response should be structured as a JSON object with the following format:
@@ -152,6 +156,13 @@ The response should be structured as a JSON object with the following format:
 }
 
 IMPORTANT: Respond ONLY with valid JSON. Do not include any explanatory text, markdown formatting, or additional commentary. Your entire response must be a single JSON object that can be parsed directly. No code blocks, no extra text, just the JSON object.
+
+CRITICAL IMAGE PROMPT GUIDELINES:
+- NEVER include user interfaces, screenshots, apps, websites, or digital devices in image prompts
+- Focus on real-world scenes, characters, emotions, and visual storytelling
+- Avoid terms like "phone", "computer", "screen", "app", "website", "interface", "dashboard"
+- Instead, describe the actual story content, characters, emotions, and scenes
+- Think of the image as a movie scene or photograph, not a screenshot
           `
         }]
       }],
