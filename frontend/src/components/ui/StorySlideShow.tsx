@@ -14,11 +14,19 @@ import {
   ImageIcon,
   RefreshCw,
   AlertCircle,
-  Pause
+  Pause,
+  Users,
+  ZoomIn,
+  ZoomOut,
+  RotateCw,
+  X
 } from 'lucide-react';
 import { useApi } from '../../contexts/ApiContext';
 import { useToast } from '../../contexts/ToastProvider';
-import { useGenerateImage, useCancelJob, useRefreshImageUrl, useJobsByStoryAndSlide } from '../../lib/imageGeneration';
+import { useGenerateImage, useGenerateImageWithConsistency, useCancelJob, useRefreshImageUrl, useJobsByStoryAndSlide } from '../../lib/imageGeneration';
+import { Switch } from '../shadcn/switch';
+import { Label } from '../shadcn/label';
+import { Dialog, DialogContent } from '../shadcn/dialog';
 
 interface StorySlide {
   slideNumber: number;
@@ -90,8 +98,15 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentGeneratingSlide, setCurrentGeneratingSlide] = useState<number | null>(null);
   const [autoGenerate, setAutoGenerate] = useState(false);
+  const [useCharacterConsistency, setUseCharacterConsistency] = useState(true);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewScale, setPreviewScale] = useState(1);
+  const [previewRotation, setPreviewRotation] = useState(0);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string>('');
+  const [previewSlideNumber, setPreviewSlideNumber] = useState<number>(0);
 
   const generateImageMutation = useGenerateImage();
+  const generateImageWithConsistencyMutation = useGenerateImageWithConsistency();
   const cancelJobMutation = useCancelJob();
   const refreshImageUrlMutation = useRefreshImageUrl();
 
@@ -132,26 +147,59 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
           // Sort by createdAt desc to get the most recent first
           const sortedJobs = slideJobs.sort((a, b) => b.createdAt - a.createdAt);
           
-          // Find the most recent completed job with an image
-          const completedJob = sortedJobs.find(job => 
-            job.status === 'completed' && job.result && 
-            (job.result as any).imageUrl
+          // Helper function to check if a job has an image URL
+          const hasImageUrl = (job: any) => {
+            if (!job.result) return false;
+            if (Array.isArray(job.result)) {
+              return job.result.length > 0 && job.result[0]?.imageUrl;
+            }
+            return job.result.imageUrl;
+          };
+          
+          console.log(`StorySlideShow: Available jobs for slide ${state.slideNumber}:`, sortedJobs.map(job => ({
+            jobId: job.jobId,
+            status: job.status,
+            hasResult: !!job.result,
+            hasImageUrl: hasImageUrl(job),
+            createdAt: job.createdAt
+          })));
+          
+          // First, try to find the most recent completed job with an image URL
+          let completedJob = sortedJobs.find(job => 
+            job.status === 'completed' && hasImageUrl(job)
           );
+          
+          // If no completed job with image URL found, look for any job with image URL
+          // (this handles cases where a job might be completed but not yet updated in Firebase)
+          if (!completedJob) {
+            completedJob = sortedJobs.find(job => hasImageUrl(job));
+          }
+          
+          // If still no job with image URL, look for the most recent completed job
+          // (it might have the image URL in a different format or we can try to refresh it)
+          if (!completedJob) {
+            completedJob = sortedJobs.find(job => 
+              job.status === 'completed'
+            );
+          }
           
           const latestJob = sortedJobs[0];
           
           if (completedJob && completedJob.result) {
             const result = completedJob.result as any;
+            const imageUrl = result.imageUrl || (Array.isArray(result) ? result[0]?.imageUrl : null);
             console.log(`StorySlideShow: Found completed job for slide ${state.slideNumber}:`, {
               jobId: completedJob.jobId,
-              imageUrl: result.imageUrl
+              status: completedJob.status,
+              hasImageUrl: !!imageUrl,
+              imageUrl: imageUrl
             });
             return {
               ...state,
               status: 'completed',
               progress: 100,
               jobId: completedJob.jobId,
-              imageUrl: result.imageUrl,
+              imageUrl: imageUrl,
             };
           } else if (latestJob.status === 'completed' && latestJob.error) {
             return {
@@ -193,9 +241,14 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
         format: 'png' as const,
         storyId: storyId,
         slideNumber: slideNumber,
+        useReferenceImage: useCharacterConsistency,
       };
 
-      const result = await generateImageMutation.mutateAsync(options);
+      // Use consistency generation for slides after the first one
+      const shouldUseConsistency = useCharacterConsistency && slideNumber > 1;
+      const mutation = shouldUseConsistency ? generateImageWithConsistencyMutation : generateImageMutation;
+      
+      const result = await mutation.mutateAsync(options);
       
       if (result.jobId) {
         setSlideStates(prev => prev.map(state => 
@@ -204,9 +257,10 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
             : state
         ));
         
+        const consistencyText = shouldUseConsistency ? ' with character consistency' : '';
         toast({
           title: `Slide ${slideNumber} Generation Started`,
-          description: 'Your image is being generated. This may take a few minutes.',
+          description: `Your image is being generated${consistencyText}. This may take a few minutes.`,
         });
 
         // Refetch jobs to update the list
@@ -298,6 +352,36 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  // Preview functions
+  const openPreview = (slideNumber: number, imageUrl: string) => {
+    setPreviewScale(1);
+    setPreviewRotation(0);
+    setPreviewImageUrl(imageUrl);
+    setPreviewSlideNumber(slideNumber);
+    setIsPreviewOpen(true);
+  };
+
+  const closePreview = () => {
+    setIsPreviewOpen(false);
+  };
+
+  const zoomIn = () => {
+    setPreviewScale(prev => Math.min(prev * 1.5, 5));
+  };
+
+  const zoomOut = () => {
+    setPreviewScale(prev => Math.max(prev / 1.5, 0.1));
+  };
+
+  const rotateImage = () => {
+    setPreviewRotation(prev => (prev + 90) % 360);
+  };
+
+  const resetPreview = () => {
+    setPreviewScale(1);
+    setPreviewRotation(0);
   };
 
   // Refresh image URL for a slide
@@ -417,7 +501,7 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
           <div className="flex flex-wrap items-center gap-4">
             <Button
               onClick={generateAllSlides}
-              disabled={isGenerating}
+              disabled
               className="bg-green-500/10 border-green-500/20 text-green-300 hover:bg-green-500/20"
             >
               {isGenerating ? (
@@ -445,6 +529,18 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
               <SkipForward className="h-4 w-4 mr-2" />
               {autoGenerate ? 'Auto-Generate On' : 'Auto-Generate Off'}
             </Button>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="character-consistency"
+                checked={useCharacterConsistency}
+                onCheckedChange={setUseCharacterConsistency}
+              />
+              <Label htmlFor="character-consistency" className="text-white text-sm flex items-center">
+                <Users className="h-4 w-4 mr-1" />
+                Character Consistency
+              </Label>
+            </div>
             
             {isGenerating && currentGeneratingSlide && (
               <Badge variant="outline" className="border-blue-500/30 text-blue-400">
@@ -491,26 +587,37 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
                       className="w-full h-48 object-contain rounded-lg border border-neutral-600"
                     />
                     <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 rounded-lg flex items-center justify-center">
-                      <Button
-                        onClick={() => downloadSlideImage(slide.slideNumber)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                        size="sm"
-                      >
-                        <Download className="h-4 w-4 mr-1" />
-                        Download
-                      </Button>
-                      {slideState.jobId && (
+                      <div className="flex gap-2">
                         <Button
-                          onClick={() => refreshImageUrl(slide.slideNumber)}
-                          disabled={refreshImageUrlMutation.isPending}
-                          variant="outline"
+                          onClick={() => openPreview(slide.slideNumber, slideState.imageUrl!)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                           size="sm"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 ml-2"
+                          variant="secondary"
                         >
-                          <RefreshCw className="h-4 w-4 mr-1" />
-                          Refresh URL
+                          <ZoomIn className="h-4 w-4 mr-1" />
+                          Preview
                         </Button>
-                      )}
+                        <Button
+                          onClick={() => downloadSlideImage(slide.slideNumber)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                          size="sm"
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          Download
+                        </Button>
+                        {slideState.jobId && (
+                          <Button
+                            onClick={() => refreshImageUrl(slide.slideNumber)}
+                            disabled={refreshImageUrlMutation.isPending}
+                            variant="outline"
+                            size="sm"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                          >
+                            <RefreshCw className="h-4 w-4 mr-1" />
+                            Refresh URL
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -595,6 +702,102 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
           );
         })}
       </div>
+
+      {/* Preview Modal */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-none w-screen h-screen p-0 bg-black/95">
+          <div className="relative w-full h-full flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 bg-black/50 backdrop-blur-sm border-b border-white/10">
+              <div className="flex items-center gap-4">
+                <h3 className="text-white font-semibold">Slide {previewSlideNumber} Preview</h3>
+                <Badge variant="secondary" className="text-xs">
+                  {Math.round(previewScale * 100)}% • {previewRotation}°
+                </Badge>
+              </div>
+              <Button
+                onClick={closePreview}
+                variant="ghost"
+                size="sm"
+                className="text-white hover:bg-white/10"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+
+            {/* Image Container */}
+            <div className="flex-1 flex items-center justify-center overflow-hidden p-4">
+              <div className="relative">
+                <img
+                  src={previewImageUrl}
+                  alt={`Generated image for slide ${previewSlideNumber}`}
+                  className="max-w-none max-h-[80vh] transition-all duration-300 ease-out"
+                  style={{
+                    transform: `scale(${previewScale}) rotate(${previewRotation}deg)`,
+                    transformOrigin: 'center',
+                  }}
+                  draggable={false}
+                />
+              </div>
+            </div>
+
+            {/* Controls */}
+            <div className="flex items-center justify-center gap-2 p-4 bg-black/50 backdrop-blur-sm border-t border-white/10">
+              <Button
+                onClick={zoomOut}
+                variant="outline"
+                size="sm"
+                className="text-white border-white/20 hover:bg-white/10"
+                disabled={previewScale <= 0.1}
+              >
+                <ZoomOut className="h-4 w-4 mr-1" />
+                Zoom Out
+              </Button>
+              
+              <Button
+                onClick={resetPreview}
+                variant="outline"
+                size="sm"
+                className="text-white border-white/20 hover:bg-white/10"
+              >
+                <RotateCw className="h-4 w-4 mr-1" />
+                Reset
+              </Button>
+              
+              <Button
+                onClick={rotateImage}
+                variant="outline"
+                size="sm"
+                className="text-white border-white/20 hover:bg-white/10"
+              >
+                <RotateCw className="h-4 w-4 mr-1" />
+                Rotate
+              </Button>
+              
+              <Button
+                onClick={zoomIn}
+                variant="outline"
+                size="sm"
+                className="text-white border-white/20 hover:bg-white/10"
+                disabled={previewScale >= 5}
+              >
+                <ZoomIn className="h-4 w-4 mr-1" />
+                Zoom In
+              </Button>
+              
+              <Button
+                onClick={() => downloadSlideImage(previewSlideNumber)}
+                variant="outline"
+                size="sm"
+                className="text-white border-white/20 hover:bg-white/10"
+              >
+                <Download className="h-4 w-4 mr-1" />
+                Download
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }; 

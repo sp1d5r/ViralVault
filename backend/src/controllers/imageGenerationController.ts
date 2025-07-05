@@ -1062,3 +1062,137 @@ export const refreshImageUrl = async (req: Request, res: Response): Promise<void
     });
   }
 }; 
+
+export const generateImagesWithConsistency = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { 
+      prompt, 
+      size, 
+      quality, 
+      format, 
+      compression, 
+      background, 
+      storyId, 
+      slideNumber, 
+      useReferenceImage = true,
+      async = false
+    } = req.body;
+    const userId = req.user?.uid;
+
+    console.log('generateImagesWithConsistency called with:', { 
+      prompt: prompt?.substring(0, 100) + '...', 
+      size, 
+      quality, 
+      format, 
+      storyId, 
+      slideNumber,
+      useReferenceImage,
+      async,
+      userId 
+    });
+
+    if (!userId) {
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
+    }
+
+    if (!prompt) {
+      res.status(400).json({ error: 'Prompt is required' });
+      return;
+    }
+
+    if (!storyId || !slideNumber) {
+      res.status(400).json({ error: 'Story ID and slide number are required for consistency' });
+      return;
+    }
+
+    // Validate prompt for content policy
+    const validation = await imageGenerationService.validatePrompt(prompt);
+    if (!validation.isValid) {
+      res.status(400).json({ 
+        error: 'Prompt violates content policy',
+        reason: validation.reason 
+      });
+      return;
+    }
+
+    if (async) {
+      // Create background job using OpenAI's Background Jobs API
+      const backgroundJob = await imageGenerationService.createImageGenerationJob({
+        prompt,
+        size,
+        quality,
+        format,
+        compression,
+        background,
+      });
+      
+      // Store job in Firebase for tracking
+      const jobData = {
+        jobId: backgroundJob.id,
+        openaiJobId: backgroundJob.id,
+        userId,
+        prompt,
+        storyId: storyId || null,
+        slideNumber: slideNumber ? parseInt(slideNumber.toString()) : null,
+        options: Object.fromEntries(
+          Object.entries({ size, quality, format, compression, background })
+            .filter(([_, value]) => value !== undefined)
+        ),
+        status: backgroundJob.status,
+        progress: 0,
+        createdAt: backgroundJob.created_at,
+        updatedAt: Date.now(),
+      };
+
+      console.log('Creating consistency job with data:', { 
+        jobId: jobData.jobId, 
+        storyId: jobData.storyId, 
+        slideNumber: jobData.slideNumber 
+      });
+
+      await new Promise<void>((resolve, reject) => {
+        FirebaseDatabaseService.addDocument(
+          'image-generation-jobs',
+          jobData,
+          () => resolve(),
+          (error) => reject(error)
+        );
+      });
+
+      res.json({
+        success: true,
+        data: {
+          jobId: backgroundJob.id,
+          status: backgroundJob.status,
+          message: 'Image generation job created with consistency. Use the jobId to check status.',
+        },
+      });
+    } else {
+      // Synchronous generation
+      const result = await imageGenerationService.generateImagesWithConsistency({
+        prompt,
+        size,
+        quality,
+        format,
+        compression,
+        background,
+        storyId,
+        slideNumber: parseInt(slideNumber.toString()),
+        userId,
+        useReferenceImage,
+      });
+
+      res.json({
+        success: true,
+        data: result,
+      });
+    }
+  } catch (error) {
+    console.error('Error generating images with consistency:', error);
+    res.status(500).json({ 
+      error: 'Failed to generate images with consistency',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}; 
