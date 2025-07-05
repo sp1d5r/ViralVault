@@ -709,7 +709,7 @@ export const ImageGenerator: React.FC = () => {
                         onLoad={() => {
                           // Reset retry count on successful load
                           if (image.jobId) {
-                            setImageLoadRetries(prev => ({ ...prev, [image.jobId]: 0 }));
+                            setImageLoadRetries(prev => ({ ...prev, [image.jobId as string]: 0 }));
                           }
                         }}
                         onError={() => {
