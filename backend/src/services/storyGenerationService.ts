@@ -129,10 +129,13 @@ For each slide, create:
   - Relevant to the slide content and narrative
   - Engaging and attention-grabbing for social media
   - Include specific visual elements that represent the story and characters
-  - Focus on characters, scenes, emotions, and story elements - NOT user interfaces, screenshots, or app designs
-  - Avoid any mention of phone screens, computer screens, app interfaces, or digital UI elements
-  - You CAN show phones/devices from the back or side, people holding devices, or using devices naturally
-  - Instead, focus on real-world scenes, people, emotions, and visual storytelling elements
+  - Focus on real-world scenes, people, emotions, and visual storytelling elements
+  - Create cinematic, emotional scenes that tell the story visually
+  - Use lighting, composition, and atmosphere to convey mood and emotion
+  - Include environmental details that support the narrative
+  - Show characters in natural, relatable situations
+  - Avoid any mention of screens, interfaces, apps, or digital UI elements
+  - Instead, focus on human experiences, emotions, and real-world scenarios
 - A brief, punchy caption for text overlay in TikTok style. This should be 1-2 lines, designed to grab attention and drive the story forward. ${request.captionPrompt ? `Use this custom instruction for the caption style: "${request.captionPrompt}"` : 'Make it suitable for overlaying on the image, and keep it concise and impactful.'}
 
 The response should be structured as a JSON object with the following format:
