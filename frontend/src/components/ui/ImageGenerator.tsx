@@ -693,7 +693,7 @@ export const ImageGenerator: React.FC = () => {
                         </div>
                       </div>
                     )}
-                    {isRefreshingUrl[image.jobId || ''] && (
+                    {image.jobId && isRefreshingUrl[image.jobId ?? ''] && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
                         <div className="flex items-center gap-2 text-white">
                           <RefreshCw className="h-4 w-4 animate-spin" />
@@ -760,10 +760,10 @@ export const ImageGenerator: React.FC = () => {
                           size="sm"
                           variant="outline"
                           onClick={() => handleRefreshUrl(image)}
-                          disabled={isRefreshingUrl[image.jobId]}
+                          disabled={image.jobId ? isRefreshingUrl[image.jobId ?? ''] : false}
                           className="flex-1"
                         >
-                          {isRefreshingUrl[image.jobId] ? (
+                          {image.jobId && isRefreshingUrl[image.jobId ?? ''] ? (
                             <>
                               <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
                               Refreshing...
@@ -777,10 +777,10 @@ export const ImageGenerator: React.FC = () => {
                         </Button>
                       )}
                     </div>
-                    {image.jobId && imageLoadRetries[image.jobId] > 0 && (
+                    {image.jobId && imageLoadRetries[image.jobId ?? ''] > 0 && (
                       <div className="text-xs text-amber-600 flex items-center gap-1">
                         <AlertCircle className="h-3 w-3" />
-                        <span>Retry attempt {imageLoadRetries[image.jobId]}/2</span>
+                        <span>Retry attempt {imageLoadRetries[image.jobId ?? '']}/2</span>
                       </div>
                     )}
                   </div>

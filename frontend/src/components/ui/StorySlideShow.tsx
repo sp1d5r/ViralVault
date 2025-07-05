@@ -488,7 +488,7 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
                     <img
                       src={slideState.imageUrl}
                       alt={`Generated image for slide ${slide.slideNumber}`}
-                      className="w-full h-48 object-cover rounded-lg border border-neutral-600"
+                      className="w-full h-48 object-contain rounded-lg border border-neutral-600"
                     />
                     <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 rounded-lg flex items-center justify-center">
                       <Button
