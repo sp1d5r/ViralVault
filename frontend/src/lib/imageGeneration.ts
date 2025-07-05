@@ -122,7 +122,7 @@ export class ImageGenerationService {
   /**
    * Get jobs by story and slide
    */
-  async getJobsByStoryAndSlide(storyId: string, slideNumber: number): Promise<{
+  async getJobsByStoryAndSlide(storyId: string, slideNumber?: number | null): Promise<{
     jobId: string;
     status: string;
     progress?: number;
@@ -131,7 +131,13 @@ export class ImageGenerationService {
     createdAt: number;
     completedAt?: number;
   }[]> {
-    const response = await this.fetchWithAuth(`api/images/jobs/story/${storyId}/slide/${slideNumber}`, {
+    const url = slideNumber 
+      ? `api/images/jobs/story/${storyId}/slide/${slideNumber}`
+      : `api/images/jobs/story/${storyId}`;
+      
+    console.log('getJobsByStoryAndSlide called with:', { storyId, slideNumber, url });
+    
+    const response = await this.fetchWithAuth(url, {
       method: 'GET',
     });
 
@@ -144,6 +150,12 @@ export class ImageGenerationService {
       createdAt: number;
       completedAt?: number;
     }[]> = await response.json();
+    
+    console.log('getJobsByStoryAndSlide response:', { 
+      success: result.success, 
+      dataLength: result.data?.length || 0 
+    });
+    
     return result.data;
   }
 
@@ -158,6 +170,27 @@ export class ImageGenerationService {
     if (!response.ok) {
       throw new Error('Failed to cancel job');
     }
+  }
+
+  /**
+   * Refresh expired image URL
+   */
+  async refreshImageUrl(jobId: string): Promise<{ imageUrl: string; expiresIn: number }> {
+    const response = await this.fetchWithAuth(`api/images/jobs/${jobId}/refresh-url`, {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to refresh image URL: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to refresh image URL');
+    }
+    
+    return result.data;
   }
 
   /**
@@ -353,23 +386,44 @@ export const useCancelJob = () => {
       }
       return imageGenerationService.cancelJob(jobId);
     },
-    onSuccess: (_, jobId) => {
-      // Invalidate job status when job is cancelled
+    onSuccess: () => {
+      // Invalidate job status queries to refetch updated status
+      queryClient.invalidateQueries({ queryKey: ['jobStatus'] });
+    },
+  });
+};
+
+export const useRefreshImageUrl = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (jobId: string) => {
+      if (!imageGenerationService) {
+        throw new Error('ImageGenerationService not initialized');
+      }
+      return imageGenerationService.refreshImageUrl(jobId);
+    },
+    onSuccess: (data, jobId) => {
+      // Invalidate job status queries to refetch updated data
       queryClient.invalidateQueries({ queryKey: ['jobStatus', jobId] });
+      queryClient.invalidateQueries({ queryKey: ['jobsByStoryAndSlide'] });
     },
   });
 };
 
 export const useJobsByStoryAndSlide = (storyId: string | null, slideNumber: number | null) => {
+  console.log('useJobsByStoryAndSlide called with:', { storyId, slideNumber });
+  
   return useQuery({
     queryKey: ['jobsByStoryAndSlide', storyId, slideNumber],
     queryFn: () => {
+      console.log('useJobsByStoryAndSlide queryFn executing');
       if (!imageGenerationService) {
         throw new Error('ImageGenerationService not initialized');
       }
-      return imageGenerationService.getJobsByStoryAndSlide(storyId!, slideNumber!);
+      return imageGenerationService.getJobsByStoryAndSlide(storyId!, slideNumber);
     },
-    enabled: !!storyId && !!slideNumber,
+    enabled: !!storyId,
     staleTime: 30000, // 30 seconds
   });
 };

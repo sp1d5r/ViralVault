@@ -3,10 +3,10 @@ import { Card, CardContent } from '../shadcn/card';
 import { Button } from '../shadcn/button';
 import { Badge } from '../shadcn/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../shadcn/select';
-import { Image, Download, Sparkles, AlertCircle, X, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Image, Download, Sparkles, AlertCircle, X, Clock, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import { useApi } from '../../contexts/ApiContext';
 import { useToast } from '../../contexts/ToastProvider';
-import { useJobStatus, useGenerateImage, useCancelJob, useJobsByStoryAndSlide } from '../../lib/imageGeneration';
+import { useJobStatus, useGenerateImage, useCancelJob, useJobsByStoryAndSlide, useRefreshImageUrl } from '../../lib/imageGeneration';
 
 interface SlideImageGeneratorProps {
   imagePrompt: string;
@@ -47,11 +47,14 @@ export const SlideImageGenerator: React.FC<SlideImageGeneratorProps> = ({
   const { fetchWithAuth } = useApi();
   const [imageStatus, setImageStatus] = useState<ImageGenerationStatus>({ status: 'idle' });
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [imageLoadRetries, setImageLoadRetries] = useState(0);
+  const [isRefreshingUrl, setIsRefreshingUrl] = useState(false);
   const { toast } = useToast();
 
   // TanStack Query hooks
   const generateImageMutation = useGenerateImage();
   const cancelJobMutation = useCancelJob();
+  const refreshImageUrlMutation = useRefreshImageUrl();
   
   // Get jobs for this story and slide
   const { 
@@ -61,15 +64,16 @@ export const SlideImageGenerator: React.FC<SlideImageGeneratorProps> = ({
     refetch: refetchJobs 
   } = useJobsByStoryAndSlide(storyId || null, slideNumber);
 
-  // Get status of selected job
-  const { 
-    data: jobStatusData, 
-    isLoading: jobStatusLoading,
-    error: jobStatusError 
-  } = useJobStatus(selectedJobId, !!selectedJobId);
-
   // Convert jobs data to JobOption format
   const availableJobs: JobOption[] = React.useMemo(() => {
+    console.log('Converting jobs data:', {
+      jobsData,
+      jobsLoading,
+      jobsError,
+      storyId,
+      slideNumber
+    });
+    
     if (!jobsData) return [];
     
     return jobsData.map((job: any) => ({
@@ -82,7 +86,14 @@ export const SlideImageGenerator: React.FC<SlideImageGeneratorProps> = ({
       error: job.error,
       completedAt: job.completedAt,
     }));
-  }, [jobsData]);
+  }, [jobsData, jobsLoading, jobsError, storyId, slideNumber]);
+
+  // Get status of selected job
+  const { 
+    data: jobStatusData, 
+    isLoading: jobStatusLoading,
+    error: jobStatusError 
+  } = useJobStatus(selectedJobId, !!selectedJobId);
 
   // Update image status based on job status
   useEffect(() => {
@@ -109,6 +120,9 @@ export const SlideImageGenerator: React.FC<SlideImageGeneratorProps> = ({
           progress: 100,
           jobId: job.jobId,
         });
+        
+        // Refetch jobs to update the list with the completed job
+        refetchJobs();
       } else if (job.status === 'completed' && job.error) {
         console.log('Setting error status:', job.error);
         setImageStatus({
@@ -116,6 +130,9 @@ export const SlideImageGenerator: React.FC<SlideImageGeneratorProps> = ({
           error: job.error,
           jobId: job.jobId,
         });
+        
+        // Refetch jobs to update the list
+        refetchJobs();
       } else if (['in_progress', 'queued', 'processing'].includes(job.status)) {
         console.log('Setting generating status, progress:', job.progress);
         setImageStatus({
@@ -130,9 +147,12 @@ export const SlideImageGenerator: React.FC<SlideImageGeneratorProps> = ({
           error: job.error || 'Job failed',
           jobId: job.jobId,
         });
+        
+        // Refetch jobs to update the list
+        refetchJobs();
       }
     }
-  }, [jobStatusData]);
+  }, [jobStatusData, refetchJobs]);
 
   // Debug image status changes
   useEffect(() => {
@@ -149,15 +169,120 @@ export const SlideImageGenerator: React.FC<SlideImageGeneratorProps> = ({
   useEffect(() => {
     setImageStatus({ status: 'idle' });
     setSelectedJobId(null);
+    setImageLoadRetries(0);
+    setIsRefreshingUrl(false);
   }, [slideNumber]);
 
   // Set initial selected job when jobs load
   useEffect(() => {
-    if (availableJobs.length > 0 && !selectedJobId) {
-      const latestJob = availableJobs[0];
-      setSelectedJobId(latestJob.jobId);
+    console.log('Jobs loaded:', {
+      availableJobs: availableJobs.length,
+      jobsLoading,
+      selectedJobId,
+      currentStatus: imageStatus.status
+    });
+    
+    if (availableJobs.length > 0) {
+      // Find the most recent completed job, or fall back to the latest job
+      const completedJob = availableJobs.find(job => 
+        job.status === 'completed' && job.result && job.result.imageUrl
+      );
+      
+      const latestJob = availableJobs[0]; // Jobs are sorted by createdAt desc
+      
+      console.log('Job analysis:', {
+        completedJob: completedJob ? { jobId: completedJob.jobId, hasImageUrl: !!completedJob.result?.imageUrl } : null,
+        latestJob: { jobId: latestJob.jobId, status: latestJob.status }
+      });
+      
+      const jobToSelect = completedJob || latestJob;
+      
+      // Only update selectedJobId if it's different or not set
+      if (selectedJobId !== jobToSelect.jobId) {
+        console.log('Setting selected job:', jobToSelect.jobId);
+        setSelectedJobId(jobToSelect.jobId);
+      }
+      
+      // If we found a completed job, immediately set the image status
+      if (completedJob) {
+        console.log('Restoring completed image:', {
+          jobId: completedJob.jobId,
+          imageUrl: completedJob.result?.imageUrl,
+          hasImageData: !!completedJob.result?.base64Data
+        });
+        setImageStatus({
+          status: 'completed',
+          imageData: completedJob.result?.base64Data,
+          imageUrl: completedJob.result?.imageUrl,
+          progress: 100,
+          jobId: completedJob.jobId,
+        });
+      } else if (latestJob.status === 'completed' && latestJob.error) {
+        setImageStatus({
+          status: 'error',
+          error: latestJob.error,
+          jobId: latestJob.jobId,
+        });
+      } else if (['in_progress', 'queued', 'processing'].includes(latestJob.status)) {
+        setImageStatus({
+          status: 'generating',
+          progress: latestJob.progress || 0,
+          jobId: latestJob.jobId,
+        });
+      } else if (latestJob.status === 'failed') {
+        setImageStatus({
+          status: 'error',
+          error: latestJob.error || 'Job failed',
+          jobId: latestJob.jobId,
+        });
+      }
+    } else if (jobsLoading) {
+      // Show loading state while jobs are being fetched
+      setImageStatus({ status: 'idle' });
     }
-  }, [availableJobs, selectedJobId]);
+  }, [availableJobs, selectedJobId, jobsLoading]);
+
+  const handleImageLoadError = async (imageUrl: string) => {
+    console.error('Image failed to load, attempting URL refresh...');
+    
+    if (imageLoadRetries < 2 && selectedJobId) {
+      setImageLoadRetries(prev => prev + 1);
+      setIsRefreshingUrl(true);
+      
+      try {
+        const result = await refreshImageUrlMutation.mutateAsync(selectedJobId);
+        
+        // Update the image status with the new URL
+        setImageStatus(prev => ({
+          ...prev,
+          imageUrl: result.imageUrl,
+        }));
+        
+        toast({
+          title: 'Image URL Refreshed',
+          description: 'Successfully refreshed the image URL',
+        });
+        
+        // Reset retry count on success
+        setImageLoadRetries(0);
+      } catch (error) {
+        console.error('Failed to refresh image URL:', error);
+        toast({
+          title: 'URL Refresh Failed',
+          description: 'Failed to refresh the image URL. The image may have expired.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsRefreshingUrl(false);
+      }
+    } else {
+      toast({
+        title: 'Image Load Error',
+        description: 'Failed to load the image after multiple attempts. The image may have expired.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const generateImage = async () => {
     try {
@@ -329,16 +454,26 @@ export const SlideImageGenerator: React.FC<SlideImageGeneratorProps> = ({
                 <SelectValue placeholder="Select a job" />
               </SelectTrigger>
               <SelectContent>
-                {availableJobs.map((job) => (
-                  <SelectItem key={job.jobId} value={job.jobId}>
-                    <div className="flex items-center justify-between w-full">
-                      <span className="truncate">{job.prompt.substring(0, 50)}...</span>
-                      <Badge variant="outline" className="ml-2">
-                        {job.status}
-                      </Badge>
-                    </div>
-                  </SelectItem>
-                ))}
+                {availableJobs.map((job, index) => {
+                  const isMostRecentCompleted = index === 0 && job.status === 'completed' && job.result?.imageUrl;
+                  return (
+                    <SelectItem key={job.jobId} value={job.jobId}>
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate">{job.prompt.substring(0, 50)}...</span>
+                          {isMostRecentCompleted && (
+                            <Badge variant="secondary" className="text-xs">
+                              Latest
+                            </Badge>
+                          )}
+                        </div>
+                        <Badge variant="outline" className="ml-2">
+                          {job.status}
+                        </Badge>
+                      </div>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
@@ -374,38 +509,76 @@ export const SlideImageGenerator: React.FC<SlideImageGeneratorProps> = ({
         {imageStatus.status === 'completed' && (imageStatus.imageUrl || imageStatus.imageData) && (
           <div className="mb-4">
             <div className="relative group">
+              {isRefreshingUrl && (
+                <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center z-10">
+                  <div className="flex items-center gap-2 text-white">
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">Refreshing image URL...</span>
+                  </div>
+                </div>
+              )}
               <img
                 src={imageStatus.imageUrl || `data:image/png;base64,${imageStatus.imageData}`}
                 alt={`Generated image for slide ${slideNumber}`}
                 className="w-full h-64 object-cover rounded-lg border"
-                onLoad={() => console.log('Image loaded successfully')}
+                onLoad={() => {
+                  console.log('Image loaded successfully');
+                  setImageLoadRetries(0); // Reset retry count on successful load
+                }}
                 onError={(e) => {
                   console.error('Image failed to load:', e);
                   console.error('Image src was:', imageStatus.imageUrl || `data:image/png;base64,${imageStatus.imageData}`);
-                  toast({
-                    title: 'Image Load Error',
-                    description: 'Failed to load the generated image',
-                    variant: 'destructive',
-                  });
+                  
+                  if (imageStatus.imageUrl) {
+                    handleImageLoadError(imageStatus.imageUrl);
+                  } else {
+                    toast({
+                      title: 'Image Load Error',
+                      description: 'Failed to load the generated image',
+                      variant: 'destructive',
+                    });
+                  }
                 }}
               />
               <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 rounded-lg flex items-center justify-center">
-                <Button
-                  onClick={downloadImage}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                  size="sm"
-                >
-                  <Download className="h-4 w-4 mr-1" />
-                  Download
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={downloadImage}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    size="sm"
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    Download
+                  </Button>
+                  {imageStatus.imageUrl && (
+                    <Button
+                      onClick={() => handleImageLoadError(imageStatus.imageUrl!)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                      size="sm"
+                      variant="outline"
+                      disabled={isRefreshingUrl}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-1" />
+                      Refresh URL
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
+            
+            {/* Retry indicator */}
+            {imageLoadRetries > 0 && (
+              <div className="mt-2 text-xs text-amber-600 flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                <span>Retry attempt {imageLoadRetries}/2</span>
+              </div>
+            )}
           </div>
         )}
 
         {/* Action Buttons */}
         <div className="flex space-x-2">
-          {imageStatus.status === 'idle' && (
+          {imageStatus.status === 'idle' && !jobsLoading && (
             <Button
               onClick={generateImage}
               disabled={generateImageMutation.isPending}
@@ -459,12 +632,47 @@ export const SlideImageGenerator: React.FC<SlideImageGeneratorProps> = ({
               Retry Generation
             </Button>
           )}
+
+          {/* Manual refresh button for completed images */}
+          {imageStatus.status === 'completed' && imageStatus.imageUrl && (
+            <Button 
+              onClick={() => handleImageLoadError(imageStatus.imageUrl!)}
+              disabled={isRefreshingUrl}
+              variant="outline"
+              size="sm"
+            >
+              {isRefreshingUrl ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh URL
+                </>
+              )}
+            </Button>
+          )}
         </div>
 
         {/* Loading States */}
         {(jobsLoading || jobStatusLoading) && (
           <div className="mt-4 text-center text-sm text-gray-500">
-            Loading job information...
+            <div className="flex items-center justify-center gap-2">
+              <Clock className="h-4 w-4 animate-spin" />
+              Loading job information...
+            </div>
+          </div>
+        )}
+
+        {/* Show loading state when no jobs but still loading */}
+        {jobsLoading && availableJobs.length === 0 && imageStatus.status === 'idle' && (
+          <div className="mt-4 text-center text-sm text-gray-500">
+            <div className="flex items-center justify-center gap-2">
+              <Clock className="h-4 w-4 animate-spin" />
+              Loading previous generations...
+            </div>
           </div>
         )}
 
