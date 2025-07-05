@@ -18,7 +18,7 @@ interface AuthContextProps {
   login: (email: string, password: string, onSuccess?: () => void, onFailure?: (error: firebase.FirebaseError) => void) => void;
   loginWithGoogle: (onSuccess?: () => void, onFailure?: (error: firebase.FirebaseError) => void) => void;
   logout: (onSuccess?: () => void, onFailure?: (error: firebase.FirebaseError) => void) => void;
-  register: (email: string, name: string, password: string, onSuccess?: () => void, onFailure?: (error: any) => void) => void;
+  register: (email: string, password: string, name: string, onSuccess?: () => void, onFailure?: (error: any) => void) => void;
   resetPassword: (email: string, onSuccess?: () => void, onFailure?: (error: any) => void) => void;
 }
 

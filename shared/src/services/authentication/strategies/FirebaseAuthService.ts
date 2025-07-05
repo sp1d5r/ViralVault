@@ -42,7 +42,7 @@ const FirebaseAuthService: AuthService = {
     return mapFirebaseUserToUser(userCredential.user);
   },
 
-  async register(email: string, name: string, password: string) {
+  async register(email: string, password: string, name: string) {
     const auth = getAuthInstance();
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     if (userCredential.user) {
