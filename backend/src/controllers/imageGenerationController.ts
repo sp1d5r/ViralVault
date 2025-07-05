@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { imageGenerationService, ImageGenerationResult } from '../services/imageGenerationService';
+import { imageGenerationService } from '../services/imageGenerationService';
 import { FirebaseDatabaseService } from 'shared';
 import { r2Service } from '../services/r2Service';
 
@@ -57,7 +57,7 @@ export const generateImages = async (req: Request, res: Response): Promise<void>
         userId,
         prompt,
         storyId: storyId || null,
-        slideNumber: slideNumber || null,
+        slideNumber: slideNumber ? parseInt(slideNumber.toString()) : null,
         options: Object.fromEntries(
           Object.entries({ size, quality, format, compression, background })
             .filter(([_, value]) => value !== undefined)
@@ -166,6 +166,58 @@ export const getJobStatus = async (req: Request, res: Response): Promise<void> =
       // Skip OpenAI polling if job is already completed in Firebase
       if (job.status === 'completed' && job.result && job.result.imageUrl) {
         console.log('Job already completed in Firebase, skipping OpenAI poll');
+        
+        // Check if the signed URL is about to expire (within 1 hour)
+        try {
+          const url = new URL(job.result.imageUrl);
+          const expiresParam = url.searchParams.get('X-Amz-Date');
+          if (expiresParam) {
+            const expiresDate = new Date(expiresParam.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/, '$1-$2-$3T$4:$5:$6Z'));
+            const now = new Date();
+            const hoursUntilExpiry = (expiresDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+            
+            if (hoursUntilExpiry < 1) {
+              console.log('Signed URL expires soon, refreshing...');
+              const key = url.pathname.substring(1);
+              const signedUrl = await r2Service.generateDownloadUrl(key, 24 * 60 * 60);
+              
+              // Update Firebase with the new URL
+              const updateData = {
+                result: {
+                  ...job.result,
+                  imageUrl: signedUrl.url,
+                },
+                updatedAt: Date.now(),
+              };
+
+              await new Promise<void>((resolve, reject) => {
+                FirebaseDatabaseService.updateDocument(
+                  'image-generation-jobs',
+                  job.id,
+                  updateData,
+                  () => resolve(),
+                  (error) => reject(error)
+                );
+              });
+
+              // Return the updated job with new URL
+              const updatedJob = {
+                ...job,
+                ...updateData,
+              };
+
+              res.json({
+                success: true,
+                job: updatedJob,
+                warning: 'Image URL was automatically refreshed',
+              });
+              return;
+            }
+          }
+        } catch (urlError) {
+          console.log('Could not parse URL expiration, continuing with existing URL');
+        }
+        
         res.json({
           success: true,
           job,
@@ -385,20 +437,28 @@ export const getJobsByStoryAndSlide = async (req: Request, res: Response): Promi
     const { storyId, slideNumber } = req.params;
     const userId = req.user?.uid;
 
+    console.log('=== getJobsByStoryAndSlide START ===');
+    console.log('Request params:', req.params);
+    console.log('Request user:', req.user);
+    console.log('Extracted values:', { storyId, slideNumber, userId });
+
     if (!userId) {
+      console.log('No userId found, returning 401');
       res.status(401).json({ error: 'User not authenticated' });
       return;
     }
 
-    if (!storyId || !slideNumber) {
-      res.status(400).json({ error: 'Story ID and slide number are required' });
+    if (!storyId) {
+      console.log('Missing storyId, returning 400');
+      res.status(400).json({ error: 'Story ID is required' });
       return;
     }
 
     console.log('getJobsByStoryAndSlide called with:', { storyId, slideNumber, userId });
 
-    // Get jobs for specific story and slide from Firebase
+    // Get all jobs for this user, then filter by storyId and optionally slideNumber
     const jobs = await new Promise<any[]>((resolve, reject) => {
+      console.log('Querying Firebase for userId:', userId);
       FirebaseDatabaseService.queryDocuments(
         'image-generation-jobs',
         'userId',
@@ -408,32 +468,58 @@ export const getJobsByStoryAndSlide = async (req: Request, res: Response): Promi
           console.log('Raw jobs from Firebase:', docs?.length || 0);
           console.log('Sample job data:', docs?.[0]);
           
-          // Filter by storyId and slideNumber
+          // Filter by storyId and optionally slideNumber
           const filteredJobs = docs?.filter((job: any) => {
-            console.log('Checking job:', {
-              jobStoryId: job.storyId,
-              jobSlideNumber: job.slideNumber,
-              targetStoryId: storyId,
-              targetSlideNumber: parseInt(slideNumber),
-              storyIdMatch: job.storyId === storyId,
-              slideNumberMatch: job.slideNumber === parseInt(slideNumber)
-            });
+            const storyIdMatch = job.storyId === storyId;
             
-            // Handle both null storyId and specific storyId
-            const storyIdMatch = job.storyId === storyId || (storyId === 'null' && job.storyId === null);
-            const slideNumberMatch = job.slideNumber === parseInt(slideNumber);
-            
-            return storyIdMatch && slideNumberMatch;
+            // If slideNumber is provided, filter by it as well
+            if (slideNumber) {
+              // Ensure both values are numbers for comparison
+              const jobSlideNumber = typeof job.slideNumber === 'string' ? parseInt(job.slideNumber) : job.slideNumber;
+              const targetSlideNumber = parseInt(slideNumber);
+              
+              console.log('Checking job:', {
+                jobStoryId: job.storyId,
+                jobSlideNumber: job.slideNumber,
+                jobSlideNumberParsed: jobSlideNumber,
+                targetStoryId: storyId,
+                targetSlideNumber: targetSlideNumber,
+                storyIdMatch: storyIdMatch,
+                slideNumberMatch: jobSlideNumber === targetSlideNumber,
+                slideNumberType: typeof job.slideNumber
+              });
+              
+              return storyIdMatch && jobSlideNumber === targetSlideNumber;
+            } else {
+              // Only filter by storyId
+              console.log('Checking job (story only):', {
+                jobStoryId: job.storyId,
+                targetStoryId: storyId,
+                storyIdMatch: storyIdMatch
+              });
+              
+              return storyIdMatch;
+            }
           }) || [];
           
           console.log('Filtered jobs:', filteredJobs.length);
+          console.log('Filtered job details:', filteredJobs.map((job: any) => ({
+            jobId: job.jobId,
+            status: job.status,
+            hasResult: !!job.result,
+            hasImageUrl: !!job.result?.imageUrl
+          })));
           resolve(filteredJobs);
         },
-        (error) => reject(error)
+        (error) => {
+          console.error('Firebase query error:', error);
+          reject(error);
+        }
       );
     });
 
     console.log('Final result:', jobs.length, 'jobs found');
+    console.log('=== getJobsByStoryAndSlide END ===');
 
     res.json({
       success: true,
@@ -871,6 +957,107 @@ export const cleanupContradictoryJobs = async (req: Request, res: Response): Pro
     console.error('Error cleaning up contradictory jobs:', error);
     res.status(500).json({ 
       error: 'Failed to clean up jobs',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+};
+
+// Refresh expired signed URLs for images
+export const refreshImageUrl = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { jobId } = req.params;
+    const userId = req.user?.uid;
+
+    if (!userId) {
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
+    }
+
+    if (!jobId) {
+      res.status(400).json({ error: 'Job ID is required' });
+      return;
+    }
+
+    // Get job from Firebase
+    const jobs = await new Promise<any[]>((resolve, reject) => {
+      FirebaseDatabaseService.queryDocuments(
+        'image-generation-jobs',
+        'jobId',
+        'createdAt',
+        jobId,
+        (docs) => resolve(docs || []),
+        (error) => reject(error)
+      );
+    });
+
+    const job = jobs.length > 0 ? jobs[0] : null;
+
+    if (!job) {
+      res.status(404).json({ error: 'Job not found' });
+      return;
+    }
+
+    // Check if user owns this job
+    if (job.userId !== userId) {
+      res.status(403).json({ error: 'Access denied' });
+      return;
+    }
+
+    // Check if job has a result with an image URL
+    if (!job.result || !job.result.imageUrl) {
+      res.status(400).json({ error: 'Job does not have an image URL to refresh' });
+      return;
+    }
+
+    // Extract the R2 key from the existing URL
+    const url = new URL(job.result.imageUrl);
+    const key = url.pathname.substring(1); // Remove leading slash
+
+    console.log('Refreshing signed URL for key:', key);
+
+    try {
+      // Generate a new signed URL
+      const signedUrl = await r2Service.generateDownloadUrl(key, 24 * 60 * 60); // 24 hours
+      
+      // Update Firebase with the new URL
+      const updateData = {
+        result: {
+          ...job.result,
+          imageUrl: signedUrl.url,
+        },
+        updatedAt: Date.now(),
+      };
+
+      await new Promise<void>((resolve, reject) => {
+        FirebaseDatabaseService.updateDocument(
+          'image-generation-jobs',
+          job.id,
+          updateData,
+          () => resolve(),
+          (error) => reject(error)
+        );
+      });
+
+      console.log('Successfully refreshed image URL');
+
+      res.json({
+        success: true,
+        data: {
+          imageUrl: signedUrl.url,
+          expiresIn: signedUrl.expiresIn,
+        },
+      });
+    } catch (refreshError) {
+      console.error('Error refreshing image URL:', refreshError);
+      res.status(500).json({ 
+        error: 'Failed to refresh image URL',
+        details: refreshError instanceof Error ? refreshError.message : 'Unknown error'
+      });
+    }
+  } catch (error) {
+    console.error('Error refreshing image URL:', error);
+    res.status(500).json({ 
+      error: 'Failed to refresh image URL',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }

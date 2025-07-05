@@ -12,6 +12,7 @@ import {
   getJobsByStoryAndSlide,
   cancelJob,
   cleanupContradictoryJobs,
+  refreshImageUrl,
   // validatePrompt,
   getAvailableModels,
   convertBase64ToDataUrl,
@@ -45,7 +46,9 @@ router.post('/blog', generateBlogImages);
 router.get('/jobs/:jobId', getJobStatus);
 router.get('/jobs', getUserJobs);
 router.get('/jobs/story/:storyId/slide/:slideNumber', getJobsByStoryAndSlide);
+router.get('/jobs/story/:storyId', getJobsByStoryAndSlide);
 router.post('/jobs/:jobId/cancel', cancelJob);
+router.post('/jobs/:jobId/refresh-url', refreshImageUrl);
 
 // Utility routes
 router.post('/jobs/cleanup-contradictory', cleanupContradictoryJobs);
