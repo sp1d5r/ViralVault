@@ -473,7 +473,7 @@ export class ImageGenerationService {
   }
 
   /**
-   * Get the most recent successful image from a specific slide for character consistency
+   * Get the most recent successful image URL from a specific slide for character consistency
    */
   async getReferenceImageForSlide(storyId: string, slideNumber: number, userId: string): Promise<string | null> {
     try {
@@ -552,9 +552,8 @@ export class ImageGenerationService {
         imageUrl: successfulJob.result?.imageUrl
       });
 
-      // Download the image and convert to base64
-      const base64Image = await this.downloadImageAsBase64(successfulJob.result.imageUrl);
-      return base64Image;
+      // Return the image URL directly
+      return successfulJob.result.imageUrl;
     } catch (error) {
       console.error('Error getting reference image:', error);
       return null;
@@ -562,7 +561,109 @@ export class ImageGenerationService {
   }
 
   /**
-   * Generate images with character consistency using a reference image
+   * Create a background job for image generation with character consistency
+   */
+  async createImageGenerationJobWithConsistency(
+    options: ImageGenerationOptions & { 
+      storyId?: string; 
+      slideNumber?: number; 
+      userId?: string;
+      useReferenceImage?: boolean;
+    }
+  ): Promise<BackgroundJob> {
+    const {
+      prompt,
+      size = 'auto',
+      quality = 'auto',
+      format = 'png',
+      compression,
+      background = 'auto',
+      storyId,
+      slideNumber,
+      userId,
+      useReferenceImage = true,
+    } = options;
+
+    try {
+      let referenceImage: string | null = null;
+
+      // If we should use a reference image and we have the necessary parameters
+      if (useReferenceImage && storyId && slideNumber && userId) {
+        // Try to get reference image from the previous slide (slideNumber - 1)
+        const referenceSlideNumber = slideNumber - 1;
+        if (referenceSlideNumber > 0) {
+          console.log('Attempting to get reference image from slide:', referenceSlideNumber);
+          referenceImage = await this.getReferenceImageForSlide(storyId, referenceSlideNumber, userId);
+        }
+      }
+
+      // Build the image generation tool configuration
+      const imageGenerationTool: any = {
+        type: 'image_generation',
+      };
+
+      // Only add properties if they're not 'auto' or default
+      if (size !== 'auto') imageGenerationTool.size = size;
+      if (quality !== 'auto') imageGenerationTool.quality = quality;
+      if (format !== 'png') imageGenerationTool.output_format = format;
+      if (background !== 'auto') imageGenerationTool.background = background;
+      if (compression !== undefined && (format === 'jpeg' || format === 'webp')) {
+        imageGenerationTool.output_compression = compression;
+      }
+
+      // If we have a reference image, create a multi-input request with the image
+      if (referenceImage) {
+        console.log('Using reference image for consistency, image URL:', referenceImage);
+        const enhancedPrompt = `${prompt}, maintain character consistency with the reference image, same character design and style`;
+        
+        // Check if it's a URL or base64 data
+        const imageInput: any = referenceImage.startsWith('http') 
+          ? { type: "input_image", image_url: referenceImage, detail: "low" as const }
+          : { type: "input_image", image_url: `data:image/jpeg;base64,${referenceImage}`, detail: "low" as const };
+        
+        const response = await this.client.responses.create({
+          model: this.defaultModel,
+          input: [
+            {
+              role: "user",
+              content: [
+                { type: "input_text", text: enhancedPrompt },
+                imageInput,
+              ],
+            },
+          ],
+          tools: [imageGenerationTool],
+          background: true, // Background processing
+        });
+
+        return {
+          id: response.id,
+          status: response.status || 'queued',
+          created_at: response.created_at,
+        };
+      }
+
+      // If no reference image, use text-only input
+      const response = await this.client.responses.create({
+        model: this.defaultModel,
+        input: prompt,
+        tools: [imageGenerationTool],
+        background: true, // Background processing
+      });
+
+      return {
+        id: response.id,
+        status: response.status || 'queued',
+        created_at: response.created_at,
+      };
+    } catch (error) {
+      console.error('Error creating background job with consistency:', error);
+      throw new Error(`Failed to create background job with consistency: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Generate images with character consistency using a reference image (synchronous fallback)
    */
   async generateImagesWithConsistency(
     options: ImageGenerationOptions & { 
@@ -612,19 +713,38 @@ export class ImageGenerationService {
         imageGenerationTool.output_compression = compression;
       }
 
-      // For the Responses API, we need to use a different input format
-      // The API expects a single text input, not an array of mixed types
-      let finalPrompt = prompt;
-
-      // If we have a reference image, enhance the prompt to mention character consistency
+      // If we have a reference image, create a multi-input request with the image
       if (referenceImage) {
-        console.log('Using reference image for consistency, base64 length:', referenceImage.length);
-        finalPrompt = `${prompt}, maintain character consistency with the reference image, same character design and style`;
+        console.log('Using reference image for consistency, image URL:', referenceImage);
+        const enhancedPrompt = `${prompt}, maintain character consistency with the reference image, same character design and style`;
+        
+        // Check if it's a URL or base64 data
+        const imageInput: any = referenceImage.startsWith('http') 
+          ? { type: "input_image", image_url: referenceImage, detail: "low" as const }
+          : { type: "input_image", image_url: `data:image/jpeg;base64,${referenceImage}`, detail: "low" as const };
+        
+        const response = await this.client.responses.create({
+          model: this.defaultModel,
+          input: [
+            {
+              role: "user",
+              content: [
+                { type: "input_text", text: enhancedPrompt },
+                imageInput,
+              ],
+            },
+          ],
+          tools: [imageGenerationTool],
+          background: false, // Synchronous processing
+        });
+
+        return this.extractImageResults(response);
       }
 
+      // If no reference image, use text-only input
       const response = await this.client.responses.create({
         model: this.defaultModel,
-        input: finalPrompt,
+        input: prompt,
         tools: [imageGenerationTool],
         background: false, // Synchronous processing
       });
