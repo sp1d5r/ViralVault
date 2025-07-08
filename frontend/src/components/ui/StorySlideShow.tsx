@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../shadcn/card';
 import { Button } from '../shadcn/button';
 import { Badge } from '../shadcn/badge';
 import { Progress } from '../shadcn/progress';
+import { Textarea } from '../shadcn/textarea';
 import { 
   Play, 
   SkipForward, 
@@ -19,7 +20,10 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCw,
-  X
+  X,
+  Edit3,
+  Save,
+  Copy
 } from 'lucide-react';
 import { useApi } from '../../contexts/ApiContext';
 import { useToast } from '../../contexts/ToastProvider';
@@ -91,6 +95,13 @@ interface SlideGenerationState {
   error?: string;
 }
 
+interface SlidePromptState {
+  slideNumber: number;
+  isEditing: boolean;
+  editedPrompt: string;
+  originalPrompt: string;
+}
+
 export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }) => {
   const { fetchWithAuth } = useApi();
   const { toast } = useToast();
@@ -104,6 +115,7 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
   const [previewRotation, setPreviewRotation] = useState(0);
   const [previewImageUrl, setPreviewImageUrl] = useState<string>('');
   const [previewSlideNumber, setPreviewSlideNumber] = useState<number>(0);
+  const [promptStates, setPromptStates] = useState<SlidePromptState[]>([]);
 
   const generateImageMutation = useGenerateImage();
   const generateImageWithConsistencyMutation = useGenerateImageWithConsistency();
@@ -118,6 +130,17 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
       progress: 0,
     }));
     setSlideStates(initialStates);
+  }, [story.generatedStory.slides]);
+
+  // Initialize prompt states
+  useEffect(() => {
+    const initialPromptStates: SlidePromptState[] = story.generatedStory.slides.map((slide) => ({
+      slideNumber: slide.slideNumber,
+      isEditing: false,
+      editedPrompt: slide.imagePrompt,
+      originalPrompt: slide.imagePrompt,
+    }));
+    setPromptStates(initialPromptStates);
   }, [story.generatedStory.slides]);
 
   // Get existing jobs for this story
@@ -247,8 +270,12 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
           : state
       ));
 
+      // Get the current prompt (edited or original)
+      const promptState = promptStates.find(p => p.slideNumber === slideNumber);
+      const promptToUse = promptState?.editedPrompt || slide.imagePrompt;
+
       const options = {
-        prompt: slide.imagePrompt,
+        prompt: promptToUse,
         size: '1024x1536' as const,
         quality: 'high' as const,
         format: 'png' as const,
@@ -411,6 +438,66 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
   const resetPreview = () => {
     setPreviewScale(1);
     setPreviewRotation(0);
+  };
+
+  // Prompt editing functions
+  const startEditingPrompt = (slideNumber: number) => {
+    setPromptStates(prev => prev.map(state => 
+      state.slideNumber === slideNumber 
+        ? { ...state, isEditing: true }
+        : state
+    ));
+  };
+
+  const saveEditedPrompt = (slideNumber: number) => {
+    setPromptStates(prev => prev.map(state => 
+      state.slideNumber === slideNumber 
+        ? { ...state, isEditing: false }
+        : state
+    ));
+    toast({
+      title: 'Prompt Updated',
+      description: 'Your custom prompt has been saved.',
+    });
+  };
+
+  const cancelEditingPrompt = (slideNumber: number) => {
+    setPromptStates(prev => prev.map(state => 
+      state.slideNumber === slideNumber 
+        ? { ...state, isEditing: false, editedPrompt: state.originalPrompt }
+        : state
+    ));
+  };
+
+  const updateEditedPrompt = (slideNumber: number, newPrompt: string) => {
+    setPromptStates(prev => prev.map(state => 
+      state.slideNumber === slideNumber 
+        ? { ...state, editedPrompt: newPrompt }
+        : state
+    ));
+  };
+
+  const copyPromptToClipboard = (slideNumber: number) => {
+    const promptState = promptStates.find(p => p.slideNumber === slideNumber);
+    const promptToCopy = promptState?.editedPrompt || promptState?.originalPrompt || '';
+    
+    navigator.clipboard.writeText(promptToCopy);
+    toast({
+      title: 'Prompt Copied!',
+      description: 'Image prompt copied to clipboard.',
+    });
+  };
+
+  const resetToOriginalPrompt = (slideNumber: number) => {
+    setPromptStates(prev => prev.map(state => 
+      state.slideNumber === slideNumber 
+        ? { ...state, editedPrompt: state.originalPrompt, isEditing: false }
+        : state
+    ));
+    toast({
+      title: 'Prompt Reset',
+      description: 'Prompt restored to original.',
+    });
   };
 
   // Refresh image URL for a slide
@@ -734,6 +821,92 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
                       <Sparkles className="h-4 w-4 mr-1" />
                       Retry
                     </Button>
+                  )}
+                </div>
+
+                {/* Image Prompt Editor */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs font-semibold text-neutral-300">Image Prompt</h4>
+                      {promptStates.find(p => p.slideNumber === slide.slideNumber)?.editedPrompt !== 
+                       promptStates.find(p => p.slideNumber === slide.slideNumber)?.originalPrompt && (
+                        <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs">
+                          Custom
+                        </Badge>
+                      )}
+                    </div>
+                                          <div className="flex items-center gap-1">
+                        <Button
+                          onClick={() => copyPromptToClipboard(slide.slideNumber)}
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-neutral-400 hover:text-neutral-300 hover:bg-neutral-700/50"
+                          title="Copy prompt"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                        {promptStates.find(p => p.slideNumber === slide.slideNumber)?.editedPrompt !== 
+                         promptStates.find(p => p.slideNumber === slide.slideNumber)?.originalPrompt && (
+                          <Button
+                            onClick={() => resetToOriginalPrompt(slide.slideNumber)}
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                            title="Reset to original"
+                          >
+                            <RotateCw className="h-3 w-3" />
+                          </Button>
+                        )}
+                        {!promptStates.find(p => p.slideNumber === slide.slideNumber)?.isEditing && (
+                          <Button
+                            onClick={() => startEditingPrompt(slide.slideNumber)}
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-neutral-400 hover:text-neutral-300 hover:bg-neutral-700/50"
+                            title="Edit prompt"
+                          >
+                            <Edit3 className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                  </div>
+                  
+                  {promptStates.find(p => p.slideNumber === slide.slideNumber)?.isEditing ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={promptStates.find(p => p.slideNumber === slide.slideNumber)?.editedPrompt || slide.imagePrompt}
+                        onChange={(e) => updateEditedPrompt(slide.slideNumber, e.target.value)}
+                        placeholder="Edit your image prompt..."
+                        className="text-xs bg-neutral-700/30 border-neutral-600 text-neutral-200 resize-none"
+                        rows={3}
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => saveEditedPrompt(slide.slideNumber)}
+                          size="sm"
+                          className="flex-1 bg-green-500/10 border-green-500/20 text-green-300 hover:bg-green-500/20 text-xs"
+                        >
+                          <Save className="h-3 w-3 mr-1" />
+                          Save
+                        </Button>
+                        <Button
+                          onClick={() => cancelEditingPrompt(slide.slideNumber)}
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 bg-neutral-500/10 border-neutral-500/20 text-neutral-300 hover:bg-neutral-500/20 text-xs"
+                        >
+                          <X className="h-3 w-3 mr-1" />
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-2 bg-neutral-700/30 rounded-md border border-neutral-600">
+                      <p className="text-xs text-neutral-300 leading-relaxed">
+                        {promptStates.find(p => p.slideNumber === slide.slideNumber)?.editedPrompt || slide.imagePrompt}
+                      </p>
+                    </div>
                   )}
                 </div>
 
