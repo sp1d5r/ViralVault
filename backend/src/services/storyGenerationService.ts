@@ -83,8 +83,8 @@ export const generateStorySlides = async (
     const storyGenerationPrompt = activePrompts.find(p => p.category === 'story-generation');
 
     // Use custom prompts if available, otherwise fall back to defaults
-    const systemPrompt = appContextPrompt?.content || `You are an expert content strategist and data storyteller working with ViralVault. Generate compelling, narrative-driven slides that transform social media data into engaging business stories.`;
-    const storyPrompt = storyGenerationPrompt?.content || `Generate a compelling story presentation based on the available data. Structure it as a narrative journey that will resonate with the target audience and achieve the creator's business goals.`;
+    const systemPrompt = appContextPrompt?.content || `You are an expert emotional marketer and story-based ad strategist working on Nadeen — a personalized iPhone meditation app designed to help people cope with real emotional stress.`;
+    const storyPrompt = storyGenerationPrompt?.content || `You are an expert emotional marketer and story-based ad strategist working on Nadeen. Your job is to create compelling, emotionally authentic story slides that address real pain points and present Nadeen as the solution.`;
 
     const response = await claude.query(
       [{
@@ -169,8 +169,7 @@ CRITICAL IMAGE PROMPT GUIDELINES:
           `
         }]
       }],
-      storySlideResponseSchema,
-      "You are an expert social media storyteller and content creator working with ViralVault. Generate compelling, narrative-driven slides that create engaging social media stories perfect for platforms like TikTok and Instagram. For each slide, create detailed image prompts that incorporate the specified visual style, aspect ratio, and color preferences for use in AI image generators. For each slide, also generate a brief, TikTok-style caption for text overlay, following any custom user instructions if provided."
+      storySlideResponseSchema
     );
 
     return response;
