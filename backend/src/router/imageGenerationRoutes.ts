@@ -14,10 +14,12 @@ import {
   cancelJob,
   cleanupContradictoryJobs,
   refreshImageUrl,
+  generateAllImagesAutomatically,
   // validatePrompt,
   getAvailableModels,
   convertBase64ToDataUrl,
   convertDataUrlToBase64,
+  getMasterJobStatus,
 } from '../controllers/imageGenerationController';
 
 const router = express.Router();
@@ -30,6 +32,12 @@ router.post('/generate', generateImages);
 
 // Generate images with character consistency
 router.post('/generate-with-consistency', generateImagesWithConsistency);
+
+// Generate all images automatically for a story
+router.post('/generate-all-automatically', generateAllImagesAutomatically);
+
+// Get master job status for automatic generation
+router.get('/master-job/:masterJobId', getMasterJobStatus);
 
 // Generate image variations
 router.post('/variations', generateVariations);

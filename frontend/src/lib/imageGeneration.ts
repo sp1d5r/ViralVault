@@ -355,6 +355,51 @@ export class ImageGenerationService {
       img.src = imageUrl;
     });
   }
+
+  /**
+   * Generate all images automatically for a story
+   */
+  async generateAllImagesAutomatically(storyId: string, useCharacterConsistency: boolean = true): Promise<{ masterJobId: string; message: string; totalSlides: number; estimatedTime: string }> {
+    const response = await this.fetchWithAuth('api/images/generate-all-automatically', {
+      method: 'POST',
+      body: JSON.stringify({ storyId, useCharacterConsistency }),
+    });
+
+    const result: ApiResponse<{ masterJobId: string; message: string; totalSlides: number; estimatedTime: string }> = await response.json();
+    return result.data;
+  }
+
+  /**
+   * Get master job status for automatic generation
+   */
+  async getMasterJobStatus(masterJobId: string): Promise<{
+    masterJob: any;
+    slideJobs: any[];
+    summary: {
+      totalSlides: number;
+      completed: number;
+      errors: number;
+      inProgress: number;
+      overallProgress: number;
+    };
+  }> {
+    const response = await this.fetchWithAuth(`api/images/master-job/${masterJobId}`, {
+      method: 'GET',
+    });
+
+    const result: ApiResponse<{
+      masterJob: any;
+      slideJobs: any[];
+      summary: {
+        totalSlides: number;
+        completed: number;
+        errors: number;
+        inProgress: number;
+        overallProgress: number;
+      };
+    }> = await response.json();
+    return result.data;
+  }
 }
 
 // Create singleton instance - will be initialized with fetchWithAuth later
@@ -471,6 +516,38 @@ export const useGenerateImageWithConsistency = () => {
     onSuccess: (data) => {
       // Invalidate and refetch job status when a new job is created
       queryClient.invalidateQueries({ queryKey: ['jobStatus', data.jobId] });
+    },
+  });
+};
+
+// Hook for automatic generation
+export const useGenerateAllImagesAutomatically = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ storyId, useCharacterConsistency }: { storyId: string; useCharacterConsistency: boolean }) =>
+      imageGenerationService.generateAllImagesAutomatically(storyId, useCharacterConsistency),
+    onSuccess: () => {
+      // Invalidate relevant queries to refresh the UI
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['story'] });
+    },
+  });
+};
+
+// Hook for getting master job status
+export const useMasterJobStatus = (masterJobId: string | null) => {
+  return useQuery({
+    queryKey: ['masterJob', masterJobId],
+    queryFn: () => imageGenerationService.getMasterJobStatus(masterJobId!),
+    enabled: !!masterJobId,
+    refetchInterval: (data) => {
+      // Stop polling when job is completed or failed
+      if (data?.masterJob?.status === 'completed' || data?.masterJob?.status === 'error') {
+        return false;
+      }
+      // Poll every 5 seconds while job is running
+      return 5000;
     },
   });
 };

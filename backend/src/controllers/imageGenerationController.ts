@@ -1196,3 +1196,352 @@ export const generateImagesWithConsistency = async (req: Request, res: Response)
     });
   }
 }; 
+
+// Generate all images automatically for a story
+export const generateAllImagesAutomatically = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { storyId, useCharacterConsistency = true } = req.body;
+    const userId = req.user?.uid;
+
+    console.log('generateAllImagesAutomatically called with:', { 
+      storyId, 
+      useCharacterConsistency,
+      userId 
+    });
+
+    if (!userId) {
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
+    }
+
+    if (!storyId) {
+      res.status(400).json({ error: 'Story ID is required' });
+      return;
+    }
+
+    // Get story details to understand how many slides need images
+    const story = await new Promise<any>((resolve, reject) => {
+      FirebaseDatabaseService.getDocument(
+        'stories',
+        storyId,
+        (doc) => resolve(doc),
+        (error) => reject(error)
+      );
+    });
+
+    if (!story) {
+      res.status(404).json({ error: 'Story not found' });
+      return;
+    }
+
+    if (story.userId !== userId) {
+      res.status(403).json({ error: 'Access denied' });
+      return;
+    }
+
+    const slides = story.generatedStory?.slides || [];
+    if (slides.length === 0) {
+      res.status(400).json({ error: 'No slides found in story' });
+      return;
+    }
+
+    // Create a master job record for tracking the entire sequence
+    const masterJobId = `auto-gen-${storyId}-${Date.now()}`;
+    const masterJobData = {
+      jobId: masterJobId,
+      type: 'auto-generation-sequence',
+      userId,
+      storyId,
+      totalSlides: slides.length,
+      currentSlide: 0,
+      status: 'starting',
+      progress: 0,
+      slideJobs: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    // Store master job in Firebase
+    await new Promise<void>((resolve, reject) => {
+      FirebaseDatabaseService.addDocument(
+        'image-generation-jobs',
+        masterJobData,
+        () => resolve(),
+        (error) => reject(error)
+      );
+    });
+
+    // Immediately return response to client
+    res.json({
+      success: true,
+      data: {
+        masterJobId,
+        message: 'Automatic image generation started. Images will be generated sequentially.',
+        totalSlides: slides.length,
+        estimatedTime: `${Math.ceil(slides.length * 2)} minutes`,
+      },
+    });
+
+    // Continue processing in background (Lambda will continue running)
+    // This is the key - we return the response but keep the Lambda alive
+    setImmediate(async () => {
+      try {
+        console.log(`Starting automatic generation for story ${storyId} with ${slides.length} slides`);
+        
+        for (let i = 0; i < slides.length; i++) {
+          const slide = slides[i];
+          const slideNumber = slide.slideNumber;
+          
+          console.log(`Processing slide ${slideNumber}/${slides.length}`);
+          
+          // Update master job status
+          await new Promise<void>((resolve, reject) => {
+            FirebaseDatabaseService.updateDocument(
+              'image-generation-jobs',
+              masterJobId,
+              {
+                currentSlide: slideNumber,
+                status: 'generating',
+                progress: Math.round((i / slides.length) * 100),
+                updatedAt: Date.now(),
+              },
+              () => resolve(),
+              (error) => reject(error)
+            );
+          });
+
+          try {
+            // Generate image for this slide
+            let imageResult;
+            
+            if (useCharacterConsistency && slideNumber > 1) {
+              // Use character consistency for subsequent slides
+              imageResult = await imageGenerationService.generateImagesWithConsistency({
+                prompt: slide.imagePrompt,
+                storyId,
+                slideNumber,
+                userId,
+                useReferenceImage: true,
+              });
+            } else {
+              // Generate first slide normally
+              imageResult = await imageGenerationService.generateImages({
+                prompt: slide.imagePrompt,
+              });
+            }
+
+            if (imageResult && imageResult.length > 0) {
+              // Upload image to R2
+              const imageData = imageResult[0];
+              const key = `stories/${storyId}/slides/${slideNumber}/auto-generated-${Date.now()}.${imageData.format}`;
+              
+              const uploadResult = await r2Service.uploadBase64Image(
+                key,
+                imageData.base64Data,
+                imageData.format
+              );
+
+              if (uploadResult.success) {
+                // Create individual job record for this slide
+                const slideJobData = {
+                  jobId: `${masterJobId}-slide-${slideNumber}`,
+                  masterJobId,
+                  openaiJobId: 'auto-generated',
+                  userId,
+                  prompt: slide.imagePrompt,
+                  storyId,
+                  slideNumber,
+                  status: 'completed',
+                  progress: 100,
+                  result: {
+                    imageUrl: uploadResult.url,
+                    size: imageData.size,
+                    model: imageData.model,
+                    format: imageData.format,
+                  },
+                  createdAt: Date.now(),
+                  updatedAt: Date.now(),
+                };
+
+                await new Promise<void>((resolve, reject) => {
+                  FirebaseDatabaseService.addDocument(
+                    'image-generation-jobs',
+                    slideJobData,
+                    () => resolve(),
+                    (error) => reject(error)
+                  );
+                });
+
+                console.log(`Successfully generated and uploaded image for slide ${slideNumber}`);
+              }
+            }
+
+            // Add delay between generations to avoid rate limits
+            if (i < slides.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+
+          } catch (slideError) {
+            console.error(`Error generating image for slide ${slideNumber}:`, slideError);
+            
+            // Create error job record
+            const errorJobData = {
+              jobId: `${masterJobId}-slide-${slideNumber}-error`,
+              masterJobId,
+              openaiJobId: 'auto-generated',
+              userId,
+              prompt: slide.imagePrompt,
+              storyId,
+              slideNumber,
+              status: 'error',
+              progress: 0,
+              error: slideError instanceof Error ? slideError.message : 'Unknown error',
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+            };
+
+            await new Promise<void>((resolve, reject) => {
+              FirebaseDatabaseService.addDocument(
+                'image-generation-jobs',
+                errorJobData,
+                () => resolve(),
+                (error) => reject(error)
+              );
+            });
+          }
+        }
+
+        // Update master job as completed
+        await new Promise<void>((resolve, reject) => {
+          FirebaseDatabaseService.updateDocument(
+            'image-generation-jobs',
+            masterJobId,
+            {
+              status: 'completed',
+              progress: 100,
+              currentSlide: slides.length,
+              completedAt: Date.now(),
+              updatedAt: Date.now(),
+            },
+            () => resolve(),
+            (error) => reject(error)
+          );
+        });
+
+        console.log(`Automatic generation completed for story ${storyId}`);
+
+      } catch (error) {
+        console.error('Error in background automatic generation:', error);
+        
+        // Update master job as failed
+        await new Promise<void>((resolve, reject) => {
+          FirebaseDatabaseService.updateDocument(
+            'image-generation-jobs',
+            masterJobId,
+            {
+              status: 'error',
+              error: error instanceof Error ? error.message : 'Unknown error',
+              updatedAt: Date.now(),
+            },
+            () => resolve(),
+            (error) => reject(error)
+          );
+        });
+      }
+    });
+
+  } catch (error) {
+    console.error('Error starting automatic image generation:', error);
+    // Note: We don't send an error response here since we already sent a success response
+    // The error will be logged and handled in the background
+  }
+}; 
+
+// Get master job status for automatic generation
+export const getMasterJobStatus = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { masterJobId } = req.params;
+    const userId = req.user?.uid;
+
+    if (!userId) {
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
+    }
+
+    if (!masterJobId) {
+      res.status(400).json({ error: 'Master Job ID is required' });
+      return;
+    }
+
+    // Get master job from Firebase
+    const masterJob = await new Promise<any>((resolve, reject) => {
+      FirebaseDatabaseService.getDocument(
+        'image-generation-jobs',
+        masterJobId,
+        (doc) => resolve(doc),
+        (error) => reject(error)
+      );
+    });
+
+    if (!masterJob) {
+      res.status(404).json({ error: 'Master job not found' });
+      return;
+    }
+
+    // Check if user owns this job
+    if (masterJob.userId !== userId) {
+      res.status(403).json({ error: 'Access denied' });
+      return;
+    }
+
+    // Get all slide jobs for this master job
+    const slideJobs = await new Promise<any[]>((resolve, reject) => {
+      FirebaseDatabaseService.queryDocuments(
+        'image-generation-jobs',
+        'masterJobId',
+        'createdAt',
+        masterJobId,
+        (docs) => resolve(docs || []),
+        (error) => reject(error)
+      );
+    });
+
+    // Calculate overall progress
+    const completedJobs = slideJobs.filter(job => job.status === 'completed');
+    const errorJobs = slideJobs.filter(job => job.status === 'error');
+    const totalProgress = slideJobs.length > 0 ? Math.round((completedJobs.length / slideJobs.length) * 100) : 0;
+
+    res.json({
+      success: true,
+      data: {
+        masterJob: {
+          ...masterJob,
+          progress: totalProgress,
+        },
+        slideJobs: slideJobs.map(job => ({
+          jobId: job.jobId,
+          slideNumber: job.slideNumber,
+          status: job.status,
+          progress: job.progress,
+          result: job.result,
+          error: job.error,
+          createdAt: job.createdAt,
+          updatedAt: job.updatedAt,
+        })),
+        summary: {
+          totalSlides: masterJob.totalSlides,
+          completed: completedJobs.length,
+          errors: errorJobs.length,
+          inProgress: slideJobs.length - completedJobs.length - errorJobs.length,
+          overallProgress: totalProgress,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Error getting master job status:', error);
+    res.status(500).json({ 
+      error: 'Failed to get master job status',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}; 
