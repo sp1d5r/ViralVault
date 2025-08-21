@@ -1333,15 +1333,16 @@ export const generateAllImagesAutomatically = async (req: Request, res: Response
             if (imageResult && imageResult.length > 0) {
               // Upload image to R2
               const imageData = imageResult[0];
-              const key = `stories/${storyId}/slides/${slideNumber}/auto-generated-${Date.now()}.${imageData.format}`;
+              const fileName = `auto-generated-${Date.now()}.${imageData.format}`;
               
-              const uploadResult = await r2Service.uploadBase64Image(
-                key,
+              const imageUrl = await r2Service.uploadBase64Image(
                 imageData.base64Data,
-                imageData.format
+                fileName,
+                userId,
+                `image/${imageData.format}`
               );
 
-              if (uploadResult.success) {
+              if (imageUrl) {
                 // Create individual job record for this slide
                 const slideJobData = {
                   jobId: `${masterJobId}-slide-${slideNumber}`,
@@ -1354,7 +1355,7 @@ export const generateAllImagesAutomatically = async (req: Request, res: Response
                   status: 'completed',
                   progress: 100,
                   result: {
-                    imageUrl: uploadResult.url,
+                    imageUrl: imageUrl,
                     size: imageData.size,
                     model: imageData.model,
                     format: imageData.format,
