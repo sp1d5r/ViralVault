@@ -169,8 +169,7 @@ CRITICAL IMAGE PROMPT GUIDELINES:
           `
         }]
       }],
-      storySlideResponseSchema,
-      "You are an expert social media storyteller and content creator working with ViralVault. Generate compelling, narrative-driven slides that create engaging social media stories perfect for platforms like TikTok and Instagram. For each slide, create detailed image prompts that incorporate the specified visual style, aspect ratio, and color preferences for use in AI image generators. For each slide, also generate a brief, TikTok-style caption for text overlay, following any custom user instructions if provided."
+      storySlideResponseSchema
     );
 
     return response;
