@@ -10,7 +10,7 @@ class LambdaService:
                  environment_vars: list[str] = None,
                  image_tag: str = None,
                  memory: int = 1024,
-                 timeout: int = 30):
+                 timeout: int = 300):  # Updated from 30 to 300 seconds (5 minutes)
         
         self.name = name
 

@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { useApi } from '../../contexts/ApiContext';
 import { useToast } from '../../contexts/ToastProvider';
-import { useGenerateImage, useGenerateImageWithConsistency, useCancelJob, useRefreshImageUrl, useJobsByStoryAndSlide } from '../../lib/imageGeneration';
+import { useGenerateImage, useGenerateImageWithConsistency, useCancelJob, useRefreshImageUrl, useJobsByStoryAndSlide, useGenerateAllImagesAutomatically, useMasterJobStatus } from '../../lib/imageGeneration';
 import { Switch } from '../shadcn/switch';
 import { Label } from '../shadcn/label';
 import { Dialog, DialogContent } from '../shadcn/dialog';
@@ -116,11 +116,14 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
   const [previewImageUrl, setPreviewImageUrl] = useState<string>('');
   const [previewSlideNumber, setPreviewSlideNumber] = useState<number>(0);
   const [promptStates, setPromptStates] = useState<SlidePromptState[]>([]);
+  const [masterJobId, setMasterJobId] = useState<string | null>(null);
 
   const generateImageMutation = useGenerateImage();
   const generateImageWithConsistencyMutation = useGenerateImageWithConsistency();
   const cancelJobMutation = useCancelJob();
   const refreshImageUrlMutation = useRefreshImageUrl();
+  const generateAllImagesAutomaticallyMutation = useGenerateAllImagesAutomatically();
+  const { data: masterJobStatus } = useMasterJobStatus(masterJobId);
 
   // Initialize slide states
   useEffect(() => {
@@ -198,52 +201,57 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
             completedJob = sortedJobs.find(job => hasImageUrl(job));
           }
           
-          // If still no job with image URL, look for the most recent completed job
-          // (it might have the image URL in a different format or we can try to refresh it)
-          if (!completedJob) {
-            completedJob = sortedJobs.find(job => 
-              job.status === 'completed'
-            );
-          }
-          
-          const latestJob = sortedJobs[0];
-          
-          if (completedJob && completedJob.result) {
-            const result = completedJob.result as any;
-            const imageUrl = result.imageUrl || (Array.isArray(result) ? result[0]?.imageUrl : null);
-            console.log(`StorySlideShow: Found completed job for slide ${state.slideNumber}:`, {
-              jobId: completedJob.jobId,
-              status: completedJob.status,
-              hasImageUrl: !!imageUrl,
-              imageUrl: imageUrl
-            });
+          if (completedJob) {
             return {
               ...state,
               status: 'completed',
               progress: 100,
               jobId: completedJob.jobId,
-              imageUrl: imageUrl,
+              imageUrl: hasImageUrl(completedJob) ? 
+                (Array.isArray(completedJob.result) ? completedJob.result[0].imageUrl : completedJob.result.imageUrl) : 
+                undefined,
             };
-          } else if (latestJob.status === 'completed' && latestJob.error) {
+          } else {
+            // Find the most recent job for this slide
+            const latestJob = sortedJobs[0];
             return {
               ...state,
-              status: 'error',
+              status: latestJob.status === 'completed' ? 'completed' : 
+                      latestJob.status === 'failed' ? 'error' : 
+                      latestJob.status === 'in_progress' ? 'generating' : 'pending',
+              progress: latestJob.progress || 0,
               jobId: latestJob.jobId,
               error: latestJob.error,
             };
-          } else if (['in_progress', 'queued', 'processing'].includes(latestJob.status)) {
-            return {
-              ...state,
-              status: 'generating',
-              jobId: latestJob.jobId,
-              progress: latestJob.progress || 0,
-            };
           }
         }
+        
         return state;
       }));
     }
   }, [existingJobs]);
+
+  // Update slide states when master job status changes
+  useEffect(() => {
+    if (masterJobStatus && masterJobStatus.slideJobs) {
+      setSlideStates(prev => prev.map(state => {
+        const slideJob = masterJobStatus.slideJobs.find(job => job.slideNumber === state.slideNumber);
+        if (slideJob) {
+          return {
+            ...state,
+            status: slideJob.status === 'completed' ? 'completed' : 
+                    slideJob.status === 'error' ? 'error' : 
+                    slideJob.status === 'in_progress' ? 'generating' : 'pending',
+            progress: slideJob.progress || 0,
+            jobId: slideJob.jobId,
+            imageUrl: slideJob.result?.imageUrl,
+            error: slideJob.error,
+          };
+        }
+        return state;
+      }));
+    }
+  }, [masterJobStatus]);
 
   // Generate image for a specific slide
   const generateSlideImage = async (slideNumber: number) => {
@@ -368,6 +376,40 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
     
     setIsGenerating(false);
     setCurrentGeneratingSlide(null);
+  };
+
+  // Generate all images automatically
+  const generateAllImagesAutomatically = async () => {
+    if (isGenerating) return;
+
+    try {
+      setIsGenerating(true);
+      
+      const result = await generateAllImagesAutomaticallyMutation.mutateAsync({
+        storyId,
+        useCharacterConsistency,
+      });
+
+      setMasterJobId(result.masterJobId);
+      
+      toast({
+        title: 'Automatic Generation Started',
+        description: `Generating ${result.totalSlides} images. Estimated time: ${result.estimatedTime}`,
+      });
+
+      // Start polling for updates
+      // The useMasterJobStatus hook will automatically poll for updates
+
+    } catch (error) {
+      console.error('Error starting automatic generation:', error);
+      toast({
+        title: 'Generation Failed',
+        description: 'Failed to start automatic image generation',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   // Cancel generation for a specific slide
@@ -616,14 +658,14 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
         <CardContent>
           <div className="flex flex-wrap items-center gap-4">
             <Button
-              onClick={generateAllSlides}
-              disabled
-              className="bg-green-500/10 border-green-500/20 text-green-300 hover:bg-green-500/20"
+              onClick={generateAllImagesAutomatically}
+              disabled={isGenerating || generateAllImagesAutomaticallyMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
-              {isGenerating ? (
+              {generateAllImagesAutomaticallyMutation.isPending ? (
                 <>
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Generating...
+                  Starting Generation...
                 </>
               ) : (
                 <>
@@ -663,6 +705,30 @@ export const StorySlideShow: React.FC<StorySlideShowProps> = ({ story, storyId }
                 <Sparkles className="h-3 w-3 mr-1" />
                 Generating Slide {currentGeneratingSlide}
               </Badge>
+            )}
+
+            {/* Master Job Progress */}
+            {masterJobStatus && masterJobStatus.masterJob && (
+              <div className="w-full space-y-2">
+                <div className="flex items-center justify-between text-sm text-neutral-300">
+                  <span>Automatic Generation Progress</span>
+                  <span>{masterJobStatus.summary.overallProgress}%</span>
+                </div>
+                <Progress 
+                  value={masterJobStatus.summary.overallProgress} 
+                  className="h-2"
+                />
+                <div className="flex items-center justify-between text-xs text-neutral-400">
+                  <span>
+                    {masterJobStatus.summary.completed}/{masterJobStatus.summary.totalSlides} completed
+                  </span>
+                  <span>
+                    {masterJobStatus.summary.errors > 0 && (
+                      <span className="text-red-400">{masterJobStatus.summary.errors} errors</span>
+                    )}
+                  </span>
+                </div>
+              </div>
             )}
           </div>
         </CardContent>
